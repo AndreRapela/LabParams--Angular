@@ -1,0 +1,283 @@
+<div class="importacao-container">
+
+  <!-- CABEÇALHO DA PÁGINA -->
+  <div class="header-section">
+    <div>
+      <h2 class="page-title">
+        <i class="fas fa-upload text-primary me-2"></i>
+        Importação de Resultados
+      </h2>
+      <p class="text-muted fst-italic mb-0">
+        Envie planilhas com resultados de análises laboratoriais.
+      </p>
+    </div>
+  </div>
+
+  <!-- CARD PRINCIPAL -->
+  <div class="card main-card">
+
+    <!-- SELEÇÃO DO TIPO DE IMPORTAÇÃO -->
+    <p class="text-muted mb-4">Selecione o tipo de arquivo para iniciar o processo de entrada de dados.</p>
+
+    <div class="tipo-cards-container mb-5">
+
+      <!-- Card Planilha (Ativo) -->
+      <div
+        class="tipo-card"
+        [class.tipo-card-active]="tipoSelecionado === 'planilha'"
+        [class.tipo-card-inactive]="tipoSelecionado !== 'planilha'"
+        (click)="selecionarTipo('planilha')">
+        <i class="fas fa-file-excel tipo-icon text-success"></i>
+        <p class="tipo-titulo">Planilha (CSV/Excel)</p>
+        <p class="tipo-descricao">Importação estruturada de dados.</p>
+      </div>
+
+      <!-- Card PDF -->
+      <div
+        class="tipo-card"
+        [class.tipo-card-active]="tipoSelecionado === 'pdf'"
+        [class.tipo-card-inactive]="tipoSelecionado !== 'pdf'"
+        (click)="selecionarTipo('pdf')">
+        <i class="fas fa-file-pdf tipo-icon text-danger"></i>
+        <p class="tipo-titulo">Relatórios (PDF)</p>
+        <p class="tipo-descricao">Extração e revisão de laudos.</p>
+      </div>
+
+    </div>
+
+    <!-- FLUXO DE IMPORTAÇÃO DE PLANILHA -->
+    <div *ngIf="tipoSelecionado === 'planilha' && !sucesso">
+
+      <h5 class="section-subtitle mb-3">
+        <i class="fas fa-cloud-upload-alt text-primary me-2"></i>
+        Envio da Planilha
+      </h5>
+
+      <!-- Informação sobre formato -->
+      <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="fas fa-info-circle me-2"></i>
+        <span>O arquivo deve ser formatado como CSV (.csv) ou Excel (.xlsx/.xls).</span>
+      </div>
+
+      <!-- ÁREA DE DROPZONE -->
+      <div
+        class="dropzone"
+        [class.dropzone-dragover]="isDragOver"
+        [class.dropzone-error]="erro"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="selecionarArquivo()">
+
+        <input
+          type="file"
+          id="file-input"
+          class="d-none"
+          accept=".csv,.xlsx,.xls"
+          (change)="onFileSelected($event)">
+
+        <div class="dropzone-content">
+          <i class="fas fa-file-upload dropzone-icon" [class.text-success]="arquivoSelecionado && !erro"></i>
+
+          <p class="dropzone-text" *ngIf="!arquivoSelecionado">
+            Arraste e solte o arquivo (CSV/XLS/XLSX) aqui
+          </p>
+          <p class="dropzone-text text-success fw-bold" *ngIf="arquivoSelecionado && !erro">
+            <i class="fas fa-check-circle me-1"></i> {{ nomeArquivo }}
+          </p>
+
+          <p class="dropzone-subtext">ou</p>
+
+          <button type="button" class="btn btn-outline-secondary" (click)="selecionarArquivo(); $event.stopPropagation()">
+            <i class="fas fa-folder-open me-2"></i>
+            Selecionar Arquivo
+          </button>
+        </div>
+      </div>
+
+      <!-- MENSAGEM DE ERRO -->
+      <div *ngIf="erro" class="alert alert-danger mt-3 d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ erro }}
+      </div>
+
+      <!-- BOTÃO DE IMPORTAÇÃO -->
+      <div class="d-flex justify-content-end mt-4">
+        <button
+          type="button"
+          class="btn btn-primary btn-importar"
+          [disabled]="!arquivoSelecionado || loading"
+          (click)="iniciarImportacao()">
+          <span *ngIf="!loading">
+            <i class="fas fa-check-circle me-2"></i> Iniciar Importação
+          </span>
+          <span *ngIf="loading">
+            <span class="spinner-border spinner-border-sm me-2"></span> Importando...
+          </span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- FLUXO DE IMPORTAÇÃO DE PDF -->
+    <div *ngIf="tipoSelecionado === 'pdf' && !sucesso">
+
+      <h5 class="section-subtitle mb-3">
+        <i class="fas fa-cloud-upload-alt text-primary me-2"></i>
+        Envio do Relatório PDF
+      </h5>
+
+      <!-- Informação sobre formato -->
+      <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span>Funcionalidade de importação de PDF em desenvolvimento. Por enquanto, utilize a importação de planilhas.</span>
+      </div>
+
+      <!-- ÁREA DE DROPZONE -->
+      <div
+        class="dropzone"
+        [class.dropzone-dragover]="isDragOver"
+        [class.dropzone-error]="erro"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="selecionarArquivo()">
+
+        <input
+          type="file"
+          id="file-input-pdf"
+          class="d-none"
+          accept=".pdf"
+          (change)="onFileSelected($event)">
+
+        <div class="dropzone-content">
+          <i class="fas fa-file-pdf dropzone-icon text-danger" [class.text-success]="arquivoSelecionado && !erro"></i>
+
+          <p class="dropzone-text" *ngIf="!arquivoSelecionado">
+            Arraste e solte o arquivo PDF aqui
+          </p>
+          <p class="dropzone-text text-success fw-bold" *ngIf="arquivoSelecionado && !erro">
+            <i class="fas fa-check-circle me-1"></i> {{ nomeArquivo }}
+          </p>
+
+          <p class="dropzone-subtext">ou</p>
+
+          <button type="button" class="btn btn-outline-secondary" (click)="selecionarArquivo(); $event.stopPropagation()">
+            <i class="fas fa-folder-open me-2"></i>
+            Selecionar Arquivo
+          </button>
+        </div>
+      </div>
+
+      <!-- MENSAGEM DE ERRO -->
+      <div *ngIf="erro" class="alert alert-danger mt-3 d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ erro }}
+      </div>
+
+      <!-- BOTÃO DE IMPORTAÇÃO (DESABILITADO) -->
+      <div class="d-flex justify-content-end mt-4">
+        <button
+          type="button"
+          class="btn btn-secondary btn-importar"
+          disabled
+          title="Funcionalidade em desenvolvimento">
+          <i class="fas fa-lock me-2"></i> Iniciar Importação (Em breve)
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RESULTADO DA IMPORTAÇÃO (SUCESSO) -->
+    <div *ngIf="sucesso && resultado" class="resultado-container">
+
+      <div class="alert alert-success mb-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-check-circle fs-3 me-3"></i>
+          <div>
+            <h5 class="mb-1">Importação Concluída com Sucesso!</h5>
+            <p class="mb-0">{{ resultado.message || 'Os dados foram processados e salvos no sistema.' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESUMO DA IMPORTAÇÃO -->
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+          <div class="stat-card">
+            <i class="fas fa-list-ol stat-icon text-primary"></i>
+            <div class="stat-value">{{ formatarNumero(resultado.resumo?.total_linhas || 0) }}</div>
+            <div class="stat-label">Total de Linhas</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon text-success"></i>
+            <div class="stat-value">{{ formatarNumero(resultado.resumo?.inseridas_no_banco || 0) }}</div>
+            <div class="stat-label">Registros Inseridos</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="stat-card">
+            <i class="fas fa-exclamation-triangle stat-icon text-warning"></i>
+            <div class="stat-value">{{ formatarNumero(resultado.resumo?.erros_validacao || 0) }}</div>
+            <div class="stat-label">Erros de Validação</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="stat-card">
+            <i class="fas fa-times-circle stat-icon text-danger"></i>
+            <div class="stat-value">{{ formatarNumero(resultado.resumo?.erros_insercao || 0) }}</div>
+            <div class="stat-label">Erros de Inserção</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LISTA DE ERROS (SE HOUVER) -->
+      <div *ngIf="resultado.erros && resultado.erros.length > 0" class="erros-container mb-4">
+        <h6 class="fw-bold text-danger mb-3">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          Erros Encontrados ({{ resultado.erros.length }})
+        </h6>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center" style="width: 80px;">Linha</th>
+                <th>Erro</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let erro of resultado.erros.slice(0, 10)">
+                <td class="text-center fw-bold">{{ erro.linha }}</td>
+                <td class="text-danger small">{{ erro.erro }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-muted small mb-0" *ngIf="resultado.erros.length > 10">
+          <i class="fas fa-info-circle me-1"></i>
+          Mostrando apenas os primeiros 10 erros de {{ resultado.erros.length }} encontrados.
+        </p>
+      </div>
+
+      <!-- BOTÃO NOVA IMPORTAÇÃO -->
+      <div class="d-flex justify-content-center">
+        <button type="button" class="btn btn-primary" (click)="novaImportacao()">
+          <i class="fas fa-plus-circle me-2"></i>
+          Nova Importação
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

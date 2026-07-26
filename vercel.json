@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "buildCommand": "ng build --configuration production --output-path dist/sysmlab",
+  "outputDirectory": "dist/sysmlab",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

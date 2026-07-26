@@ -1,0 +1,101 @@
+# ====================================
+# DEPENDÊNCIAS
+# ====================================
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ====================================
+# ANGULAR - BUILD E CACHE
+# ====================================
+.angular/
+dist/
+out-tsc/
+bazel-out/
+.angular-cache/
+
+# ====================================
+# ARQUIVOS SENSÍVEIS E CONFIGURAÇÕES (CRÍTICO)
+# ====================================
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Configurações com dados sensíveis
+src/config/api.config.ts
+src/environments/environment.ts
+src/environments/environment.prod.ts
+
+# Proteger apenas se houver dados reais sensíveis
+# Se são templates, remova estas linhas:
+# src/config/app.config.ts
+
+# ====================================
+# IDEs E EDITORES
+# ====================================
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.history/
+
+# ====================================
+# SISTEMA OPERACIONAL
+# ====================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ====================================
+# TESTES E COBERTURA
+# ====================================
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+*.lcov
+
+# ====================================
+# LOGS E DEBUG
+# ====================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ====================================
+# SASS E CSS
+# ====================================
+/.sass-cache
+*.css.map
+
+# ====================================
+# VERCEL E DEPLOY
+# ====================================
+.vercel
+.now
+
+# ====================================
+# DIVERSOS
+# ====================================
+/connect.lock
+/typings
+.tmp/
+*.tmp
+*.temp

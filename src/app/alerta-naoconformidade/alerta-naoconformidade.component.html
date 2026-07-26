@@ -1,0 +1,165 @@
+<div class="alertas-container">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div class="d-flex align-items-center gap-4">
+
+      <h1 class="page-title mb-0 d-flex align-items-center" style="font-size: 1.5rem;">
+        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+        <span style="color: #1e293b;">Alertas de Não Conformidades</span>
+      </h1>
+    </div>
+
+    <button class="btn btn-white border shadow-sm" (click)="carregarDados()" [disabled]="isLoading">
+      <i class="fas fa-sync-alt" [class.spin-icon]="isLoading"></i> Atualizar
+    </button>
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+      <div class="stats-card border-start border-warning border-4">
+        <span class="label text-warning-emphasis">Alertas (Preventivo)</span>
+        <div class="value text-warning">{{ stats.alerta }}</div>
+        <small class="text-muted">Próximos do limite.</small>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="stats-card border-start border-orange border-4" style="border-left-color: #fd7e14 !important;">
+        <span class="label text-orange">Não Conformes</span>
+        <div class="value text-orange">{{ stats.naoConforme }}</div>
+        <small class="text-muted">Fora dos limites legais.</small>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="stats-card border-start border-danger border-4">
+        <span class="label text-danger">Críticos (Grave)</span>
+        <div class="value text-danger">{{ stats.critico }}</div>
+        <small class="text-muted">Desvio severo.</small>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="stats-card border-start border-secondary border-4">
+        <span class="label text-secondary">Total de Ocorrências</span>
+        <div class="value text-secondary">{{ stats.total }}</div>
+        <small class="text-muted">Monitoramento geral.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger shadow-sm" *ngIf="erroApi">
+    <i class="bi bi-x-circle-fill me-2"></i>
+    Não foi possível carregar os dados. Verifique sua conexão com a API.
+  </div>
+
+  <div class="card content-card shadow-sm border-0">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center py-3 gap-3">
+
+      <h5 class="mb-0 fw-bold text-secondary d-flex align-items-center">
+        Lista de Ocorrências
+        <span class="badge bg-light text-dark border ms-2 rounded-pill">{{ alertasFiltrados.length }}</span>
+      </h5>
+
+      <div class="d-flex gap-2 filters-wrapper">
+        <select class="form-select form-select-sm" style="width: 160px;" [(ngModel)]="filtroStatus"
+          (change)="aplicarFiltros()">
+          <option value="Todos">Status: Todos</option>
+          <option value="ALERTA">Alerta</option>
+          <option value="NÃO CONFORME">Não Conforme</option>
+          <option value="CRÍTICO">Crítico</option>
+        </select>
+
+        <div class="input-group input-group-sm" style="width: 250px;">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar parâmetro ou local..."
+            [(ngModel)]="filtroTexto" (input)="aplicarFiltros()">
+          <button class="btn btn-outline-secondary border-start-0" type="button" *ngIf="filtroTexto"
+            (click)="limparFiltros()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center py-5" *ngIf="isLoading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Carregando...</span>
+      </div>
+      <p class="text-muted mt-2 small">Analisando dados...</p>
+    </div>
+
+    <div class="table-responsive" *ngIf="!isLoading">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light text-secondary small text-uppercase">
+          <tr>
+            <th class="ps-4">Status</th>
+            <th>Parâmetro</th>
+            <th>Matriz</th>
+            <th>Valor / Limite</th>
+            <th>Data da Ocorrência</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of alertasFiltrados">
+            <td class="ps-4">
+              <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-3 py-2" [ngClass]="{
+                      'bg-warning-subtle text-warning-emphasis border border-warning': item.status === 'ALERTA',
+                      'bg-orange-subtle text-orange-emphasis border border-orange': item.status === 'NÃO CONFORME',
+                      'bg-danger-subtle text-danger border border-danger': item.status === 'CRÍTICO'
+                    }">
+                <i class="bi" [class.bi-exclamation-circle-fill]="item.status === 'ALERTA'"
+                  [class.bi-exclamation-triangle-fill]="item.status === 'NÃO CONFORME'"
+                  [class.bi-x-octagon-fill]="item.status === 'CRÍTICO'"></i>
+                {{ item.status }}
+              </span>
+            </td>
+
+            <td class="fw-bold text-dark">{{ item.parametro_nome }}</td>
+
+            <td>
+              <span class="text-secondary small bg-light px-2 py-1 rounded border">
+                <i class="bi bi-geo-alt me-1"></i> {{ item.matriz_nome }}
+              </span>
+            </td>
+
+            <td>
+              <strong [ngClass]="{
+                      'text-warning-emphasis': item.status === 'ALERTA',
+                      'text-orange': item.status === 'NÃO CONFORME',
+                      'text-danger': item.status === 'CRÍTICO'
+                    }" class="fs-6">
+                {{ item.valor_medido | number:'1.2-4' }}
+                <span class="small text-muted fw-normal">{{ item.unidade_medida }}</span>
+              </strong>
+              <br>
+              <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+                {{ item.mensagem_limite }}
+              </small>
+            </td>
+
+            <td class="text-secondary">
+              {{ item.data_alerta | date:'dd/MM/yyyy HH:mm':'UTC' }}
+            </td>
+          </tr>
+
+          <tr *ngIf="!isLoading && alertasFiltrados.length === 0">
+            <td colspan="5" class="text-center py-5 text-muted bg-white">
+              <div class="py-4">
+                <i class="bi bi-check2-circle fs-1 text-success opacity-50 d-block mb-3"></i>
+                <h6 class="fw-bold text-dark">Nenhum Alerta Encontrado</h6>
+                <p class="mb-0 small">Não há registros de não conformidade com os filtros atuais.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-white text-muted small py-2 d-flex justify-content-end" *ngIf="!isLoading">
+      <span class="me-2"><i class="bi bi-clock"></i> Atualizado em tempo real</span>
+    </div>
+  </div>
+</div>

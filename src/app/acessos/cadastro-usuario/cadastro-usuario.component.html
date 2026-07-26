@@ -1,0 +1,101 @@
+<section class="login-page" aria-labelledby="register-title">
+  <div class="login-wrapper">
+    <div class="logo-block">
+      <div class="logo-icon" aria-hidden="true">
+        <i class="fa-solid fa-flask"></i>
+      </div>
+      <h1 class="logo-title">SYSmLab</h1>
+      <p class="logo-subtitle">
+        Sistema inteligente de monitoramento para laboratórios ambientais
+      </p>
+    </div>
+
+    <div class="login-card">
+      <header class="card-header">
+        <h2 id="register-title" class="card-title">Cadastrar usuário</h2>
+        <p class="card-description">Acesso exclusivo para gestores</p>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+        <div class="field">
+          <label for="nome">Nome</label>
+          <input id="nome" type="text" formControlName="nome" autocomplete="name" />
+        </div>
+
+        <div class="field">
+          <label for="register-email">E-mail</label>
+          <input
+            id="register-email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            inputmode="email"
+          />
+        </div>
+
+        <div class="field">
+          <label for="telefone">Telefone</label>
+          <input
+            id="telefone"
+            type="tel"
+            formControlName="telefone"
+            autocomplete="tel"
+            inputmode="tel"
+            (input)="mascaraTelefone($event)"
+            placeholder="(99) 99999-9999"
+          />
+        </div>
+
+        <div class="field">
+          <label for="perfil">Perfil</label>
+          <select id="perfil" formControlName="perfil" required>
+            <option value="" disabled>Selecione um perfil</option>
+            <option value="Gestor">Gestor</option>
+            <option value="Analista">Analista</option>
+            <option value="Usuário">Usuário</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="register-password">Senha</label>
+          <input
+            id="register-password"
+            type="password"
+            formControlName="senha"
+            autocomplete="new-password"
+          />
+          <small
+            class="erro"
+            *ngIf="form.get('senha')?.hasError('minlength') && form.get('senha')?.touched"
+          >
+            A senha deve ter no mínimo 8 caracteres.
+          </small>
+        </div>
+
+        <div class="field">
+          <label for="confirm-password">Confirmar senha</label>
+          <input
+            id="confirm-password"
+            type="password"
+            formControlName="confirmarSenha"
+            autocomplete="new-password"
+          />
+          <small
+            class="erro"
+            *ngIf="form.hasError('senhaDiferente') && form.get('confirmarSenha')?.touched"
+          >
+            As senhas não conferem.
+          </small>
+        </div>
+
+        <button
+          class="submit-button"
+          type="submit"
+          [disabled]="form.invalid || loading"
+        >
+          {{ loading ? 'Cadastrando...' : 'Cadastrar usuário' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</section>

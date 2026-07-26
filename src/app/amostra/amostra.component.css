@@ -1,0 +1,361 @@
+/* =========================================
+   LAYOUT GERAL
+========================================= */
+.amostra-container {
+  padding: 2rem;
+  background-color: #f7fafc;
+  /* Fundo cinza suave */
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header-section,
+.card,
+hr {
+  max-width: 1200px;
+  /* Limita a largura para não esticar demais em telas grandes */
+  width: 100%;
+  /* Ocupa 100% até atingir o max-width */
+  margin-left: auto;
+  /* Margem automática esquerda */
+  margin-right: auto;
+  /* Margem automática direita */
+}
+
+/* =========================================
+   CABEÇALHO DA PÁGINA (DESIGN AJUSTADO AO PRINT)
+========================================= */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  /* Alinha botão com texto */
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Título Principal */
+.page-title {
+  color: #0f172a;
+  /* Azul Marinho Escuro (Quase preto) */
+  font-weight: 800;
+  /* Extra Bold */
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.page-title i {
+  color: #2563eb !important;
+  /* Azul Royal vibrante */
+  font-size: 1.8rem;
+  margin-right: 0.75rem;
+}
+
+/* Subtítulo */
+.header-section p {
+  color: #64748b;
+  font-size: 1rem;
+  margin-bottom: 0;
+  font-style: italic;
+  /* Igual ao print */
+}
+
+/* Botão Nova Amostra com Gradiente */
+.new-amostra-btn {
+  /* Definindo o gradiente de cima para baixo */
+  background-image: linear-gradient(180deg, #4F86F6 0%, #2563EB 100%);
+  border: none;
+  /* Removemos a borda sólida */
+  font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  height: fit-content;
+  /* Sombra suave para dar profundidade */
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s ease;
+  color: white;
+  /* Garante que o texto fique branco */
+}
+
+/* Efeito de Hover */
+.new-amostra-btn:hover {
+  background-image: linear-gradient(180deg, #3b75e8 0%, #1d4ed8 100%);
+  /* Gradiente ligeiramente mais escuro */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.4);
+}
+
+/* Efeito de Click (Active) */
+.new-amostra-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.3);
+  filter: brightness(95%);
+}
+
+/* =========================================
+   CARTÕES (Formulário e Lista)
+========================================= */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background-color: white;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  background-color: white;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem 1.5rem;
+  font-weight: 700;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* =========================================
+   FORMULÁRIO
+========================================= */
+.form-label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.form-control,
+.form-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  outline: none;
+}
+
+/* Multi-select */
+select[multiple] {
+  height: auto;
+  min-height: 120px;
+  background-image: none;
+}
+
+.form-text {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.text-danger {
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* =========================================
+   TABELA DE DADOS
+========================================= */
+.table-responsive {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.table {
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.table thead th {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+
+}
+
+.table tbody td {
+  padding: 1rem;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+  --bs-table-accent-bg: #f8fafc;
+}
+
+/* Badge Azul Claro da Tabela */
+.badge.bg-primary {
+  background-color: #e0e7ff !important;
+  color: #4338ca;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 0.5em 0.8em;
+  border-radius: 6px;
+}
+
+.btn-group-sm>.btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* =========================================
+   MODAL
+========================================= */
+.modal-content {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.5rem;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+@media (max-width: 768px) {
+  .amostra-container {
+    padding: 1rem;
+  }
+
+  .header-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .new-amostra-btn {
+    width: 100%;
+    margin-top: 1rem;
+  }
+}
+
+/* =========================================
+   BOTÕES DE AÇÃO DA TABELA
+========================================= */
+.action-btn {
+  background: none;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-btn i {
+  font-size: 1rem;
+}
+
+/* Cores específicas para os botões (caso não use as classes do Bootstrap) */
+/* .text-primary { color: #2563eb; } */
+/* .text-success { color: #16a34a; } */
+/* .text-danger  { color: #dc2626; } */
+
+/* Efeito de Hover: Fundo sutil e leve aumento */
+.action-btn.text-primary:hover {
+  background-color: #eff6ff; /* Azul muito claro */
+  color: #1e40af; /* Azul mais escuro */
+}
+
+.action-btn.text-success:hover {
+  background-color: #f0fdf4; /* Verde muito claro */
+  color: #15803d; /* Verde mais escuro */
+}
+
+.action-btn.text-danger:hover {
+  background-color: #fef2f2; /* Vermelho muito claro */
+  color: #b91c1c; /* Vermelho mais escuro */
+}
+
+/* =========================================
+   BOTÕES PARA EDITAR E SALVAR A AMOSTRA
+========================================= */
+
+/* Container dos botões para alinhamento */
+.d-flex.justify-content-end {
+  gap: 12px; /* Espaço entre os botões */
+  margin-top: 1rem;
+}
+
+/* BOTÃO REGISTRAR / SALVAR (AZUL VIBRANTE) */
+.btn-success {
+  background-image: linear-gradient(to bottom, #4F86F6, #2563EB);
+  border: none; /* Remove a borda para o gradiente preencher o botão */
+  font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  height: fit-content;
+  color: white; /* Garante que o texto seja branco */
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); /* Sombra azulada suave */
+  transition: all 0.3s ease; /* Transição suave para o efeito de hover */
+}
+
+.btn-success:hover {
+  background-color: #2563eb; /* Azul um pouco mais escuro no hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.5);
+}
+
+.btn-success:disabled {
+  background-color: #93c5fd;
+  border-color: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* BOTÃO CANCELAR (CINZA SUAVE) */
+.btn-secondary {
+  background-color: #e2e8f0; /* Cinza claro (Slate-200) */
+  border-color: #e2e8f0;
+  color: #475569; /* Texto cinza escuro */
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #cbd5e1; /* Cinza um pouco mais escuro */
+  color: #1e293b;
+}
+
+/* Ícone dentro do botão (se houver) */
+.btn i {
+  font-size: 1rem;
+}
+
+

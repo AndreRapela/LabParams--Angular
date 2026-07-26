@@ -1,0 +1,95 @@
+<div class="page-container">
+
+  <h1 class="page-title">Gerenciamento de Parâmetros</h1>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Parâmetro</th>
+          <th>Valor Atual</th>
+          <th>Limite Mínimo</th>
+          <th>Limite Máximo</th>
+          <th>Matriz</th>
+          <th>Legislação</th>
+          <th>Editar</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let p of parametros">
+          <td>{{ p.nome }}</td>
+          <td>{{ p.valor_parametro }}</td>
+          <td>{{ p.limite_minimo }}</td>
+          <td>{{ p.limite_maximo }}</td>
+          <td>{{ p.matriz_nome }}</td>
+          <td>{{ p.legislacao_sigla }}</td>
+          <td class="action-col">
+            <button class="edit-btn" (click)="abrirEdicao(p)"> <i class="fas fa-edit"></i></button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal" *ngIf="editando">
+    <div class="modal-content">
+
+      <h2>Editar Parâmetro</h2>
+
+      <form (ngSubmit)="salvar()">
+
+        <div class="form-group">
+          <label>Nome</label>
+          <input class="input" [value]="form.nome" disabled>
+        </div>
+
+        <div class="form-group">
+          <label>Valor</label>
+          <input
+            class="input"
+            type="number"
+            [(ngModel)]="form.valor_parametro"
+            name="valor_parametro"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Limite Mínimo</label>
+          <input class="input" [value]="form.limite_minimo" disabled>
+        </div>
+
+        <div class="form-group">
+          <label>Limite Máximo</label>
+          <input class="input" [value]="form.limite_maximo" disabled>
+        </div>
+
+        <div class="form-group">
+          <label>Matriz</label>
+          <select class="input" [(ngModel)]="form.matriz_id" name="matriz_id">
+            <option *ngFor="let m of matrizes" [value]="m.id">
+              {{ m.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Legislação</label>
+          <select class="input" [(ngModel)]="form.legislacao_id" name="legislacao_id">
+            <option *ngFor="let l of legislacoes" [value]="l.id">
+              {{ l.sigla }} - {{ l.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="btn-area">
+          <button class="btn-save" type="submit">Salvar</button>
+          <button class="btn-cancel" type="button" (click)="fechar()">Cancelar</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,57 @@
+<section class="modal-container" aria-labelledby="parameter-filter-title">
+  <header class="modal-header">
+    <span class="header-icon" aria-hidden="true">
+      <i class="fa-solid fa-sliders"></i>
+    </span>
+    <div>
+      <h2 id="parameter-filter-title">Parâmetros visíveis</h2>
+      <p>Escolha quais dados deseja acompanhar.</p>
+    </div>
+  </header>
+
+  <label class="modal-search" for="parameter-search">
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+    <input
+      id="parameter-search"
+      type="search"
+      placeholder="Buscar parâmetro"
+      [(ngModel)]="search"
+      autocomplete="off"
+    />
+  </label>
+
+  <div class="modal-section">
+    <div *ngIf="loading" class="modal-state" role="status">
+      Carregando parâmetros...
+    </div>
+    <div *ngIf="error" class="modal-state error" role="alert">{{ error }}</div>
+
+    <div *ngIf="!loading && !error" class="parametros-grid">
+      <label
+        class="parametro-item"
+        *ngFor="let parametro of parametrosFiltrados; trackBy: trackByParametro"
+        [class.selected]="selecionados.includes(parametro.id)"
+      >
+        <input
+          type="checkbox"
+          [checked]="selecionados.includes(parametro.id)"
+          (change)="toggle(parametro.id)"
+        />
+        <span [title]="parametro.nome">{{ parametro.nome }}</span>
+      </label>
+    </div>
+
+    <div
+      *ngIf="!loading && !error && parametrosFiltrados.length === 0"
+      class="modal-state"
+    >
+      Nenhum parâmetro encontrado.
+    </div>
+  </div>
+
+  <footer class="modal-actions">
+    <button class="button-secondary" type="button" (click)="cancelar()">Cancelar</button>
+    <button class="button-secondary" type="button" (click)="limpar()">Limpar</button>
+    <button class="button-primary" type="button" (click)="aplicar()">Aplicar</button>
+  </footer>
+</section>

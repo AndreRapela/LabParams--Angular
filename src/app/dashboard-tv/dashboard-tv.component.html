@@ -1,0 +1,60 @@
+<div class="dashboard-container">
+
+  <div class="parameters-grid" *ngIf="hasData; else loadingOrError">
+
+    <div class="parameter-card" *ngFor="let param of parameters">
+
+      <!-- Header com nome e status -->
+      <div class="parameter-header">
+        <h2 class="parameter-name">{{ param.parameter_name }}</h2>
+        <span class="parameter-status-badge" [ngClass]="getStatusBadgeClass(param.status)">
+          <i [class]="getStatusIcon(param.status)"></i>
+          {{ getStatusText(param.status) }}
+        </span>
+      </div>
+
+      <!-- Limites -->
+      <p class="parameter-limits">Limite: {{ param.limite_minimo }} - {{ param.limite_maximo }} {{ param.unit }}</p>
+
+      <!-- Valor -->
+      <div class="parameter-value-container">
+        <span class="parameter-value">{{ formatValue(param.current_value) }}</span>
+        <span class="parameter-unit">{{ param.unit }}</span>
+      </div>
+
+      <!-- Barra de progresso -->
+      <div class="progress-bar-container">
+        <div class="progress-track">
+          <div class="progress-bar-fill"
+               [ngClass]="getProgressBarClass(param.status)"
+               [style.width]="getProgressBarWidth(param)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Última atualização -->
+      <p class="parameter-update">Última atualização: {{ getTimeAgo(param.last_update) }}</p>
+
+    </div>
+
+  </div>
+
+  <ng-template #loadingOrError>
+    <div class="loading-error-container">
+      <div *ngIf="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Carregando dados...</p>
+      </div>
+
+      <div *ngIf="error" class="error">
+        <div class="error-icon">⚠️</div>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadDashboardData()">Tentar Novamente</button>
+      </div>
+
+      <div *ngIf="isEmpty" class="empty">
+        <p>Nenhum dado disponível</p>
+      </div>
+    </div>
+  </ng-template>
+</div>

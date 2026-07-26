@@ -1,0 +1,316 @@
+/* =========================================
+   CONTAINER PRINCIPAL
+========================================= */
+.importacao-container {
+  padding: 2rem;
+  background-color: #f7fafc;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* =========================================
+   CABEÇALHO DA PÁGINA
+========================================= */
+.header-section {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.page-title {
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* =========================================
+   CARD PRINCIPAL
+========================================= */
+.card.main-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+}
+
+/* =========================================
+   CARDS DE TIPO DE IMPORTAÇÃO
+========================================= */
+.tipo-cards-container {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.tipo-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 250px;
+  max-width: 300px;
+}
+
+.tipo-card:hover:not(.tipo-card-disabled) {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.tipo-card-active {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(to bottom, #ffffff, #eff6ff);
+}
+
+.tipo-card-inactive {
+  border-color: #e5e7eb;
+  opacity: 0.8;
+}
+
+.tipo-card-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.tipo-card-disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.tipo-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.tipo-titulo {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.tipo-descricao {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* =========================================
+   SEÇÃO DE UPLOAD
+========================================= */
+.section-subtitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* =========================================
+   DROPZONE (ÁREA DE UPLOAD)
+========================================= */
+.dropzone {
+  border: 2px dashed #cbd5e1;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.dropzone-dragover {
+  border-color: #3b82f6;
+  background-color: #dbeafe;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.dropzone-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.dropzone-content {
+  pointer-events: none;
+}
+
+.dropzone-icon {
+  font-size: 3rem;
+  color: #3b82f6;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.dropzone-text {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.dropzone-subtext {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+/* =========================================
+   BOTÃO DE IMPORTAÇÃO
+========================================= */
+.btn-importar {
+  background-image: linear-gradient(180deg, #4F86F6 0%, #2563EB 100%);
+  border: none;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-importar:hover:not(:disabled) {
+  background-image: linear-gradient(180deg, #3b75e8 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.4);
+}
+
+.btn-importar:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.3);
+}
+
+.btn-importar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   RESULTADO DA IMPORTAÇÃO
+========================================= */
+.resultado-container {
+  padding-top: 1rem;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* =========================================
+   TABELA DE ERROS
+========================================= */
+.erros-container {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.table-responsive {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+/* =========================================
+   ALERTAS
+========================================= */
+.alert {
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.alert-info {
+  background-color: #eff6ff;
+  border-left-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-success {
+  background-color: #f0fdf4;
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.alert-danger {
+  background-color: #fef2f2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+@media (max-width: 768px) {
+  .importacao-container {
+    padding: 1rem;
+  }
+
+  .card.main-card {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .tipo-cards-container {
+    flex-direction: column;
+  }
+
+  .tipo-card {
+    max-width: 100%;
+  }
+
+  .dropzone {
+    padding: 2rem 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}

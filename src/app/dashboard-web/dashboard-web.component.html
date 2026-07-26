@@ -1,0 +1,212 @@
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <div>
+      <span class="eyebrow">Visão geral</span>
+      <h1>Monitoramento laboratorial</h1>
+      <p>Acompanhe conformidade, alertas e resultados em um só lugar.</p>
+    </div>
+    <span class="updated-at" *ngIf="lastUpdated">
+      <i class="fa-solid fa-clock" aria-hidden="true"></i>
+      Atualizado em {{ lastUpdated }}
+    </span>
+  </header>
+
+  <section class="stats-grid" aria-label="Resumo dos resultados">
+    <article class="stat-card stat-total">
+      <span class="stat-icon"><i class="fa-solid fa-flask-vial"></i></span>
+      <span><strong>{{ statistics.total_parameters }}</strong><small>Total</small></span>
+    </article>
+    <article class="stat-card stat-success">
+      <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+      <span><strong>{{ statistics.compliant_count }}</strong><small>Conformes</small></span>
+    </article>
+    <article class="stat-card stat-warning">
+      <span class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <span><strong>{{ statistics.alert_count }}</strong><small>Em alerta</small></span>
+    </article>
+    <article class="stat-card stat-danger">
+      <span class="stat-icon"><i class="fa-solid fa-circle-xmark"></i></span>
+      <span><strong>{{ nonCompliantTotal }}</strong><small>Não conformes</small></span>
+    </article>
+  </section>
+
+  <section class="filter-panel" aria-labelledby="filters-title">
+    <div class="section-heading">
+      <div>
+        <span class="section-icon"><i class="fa-solid fa-filter"></i></span>
+        <span>
+          <h2 id="filters-title">Filtros</h2>
+          <p>Refine os resultados por origem, amostra, período ou status.</p>
+        </span>
+      </div>
+      <button
+        *ngIf="hasActiveFilters"
+        class="clear-button"
+        type="button"
+        (click)="limparFiltros()"
+        [disabled]="loading"
+      >
+        Limpar filtros
+      </button>
+    </div>
+
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label for="legislacao-filter">Legislação</label>
+        <select id="legislacao-filter" [(ngModel)]="selectedLegislacao">
+          <option [ngValue]="null">Todas as legislações</option>
+          <option *ngFor="let leg of legislacoes" [ngValue]="leg.id">
+            {{ leg.nome }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="matriz-filter">Matriz</label>
+        <select id="matriz-filter" [(ngModel)]="selectedMatriz">
+          <option [ngValue]="null">Todas as matrizes</option>
+          <option *ngFor="let matriz of matrizes" [ngValue]="matriz.id">
+            {{ matriz.nome }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="sample-filter">Número da amostra</label>
+        <input
+          id="sample-filter"
+          type="search"
+          [(ngModel)]="filtroAmostraNumero"
+          placeholder="Ex.: AM-2026-001"
+        />
+      </div>
+
+      <div class="filter-field">
+        <label for="collection-date-filter">Data da coleta</label>
+        <input id="collection-date-filter" type="date" [(ngModel)]="filtroDataColeta" />
+      </div>
+
+      <div class="filter-field">
+        <label for="publication-date-filter">Data da publicação</label>
+        <input
+          id="publication-date-filter"
+          type="date"
+          [(ngModel)]="filtroDataPublicacao"
+        />
+      </div>
+
+      <div class="filter-field">
+        <label for="status-filter">Status</label>
+        <select id="status-filter" [(ngModel)]="filtroStatus">
+          <option value="">Todos os status</option>
+          <option value="conforme">Conforme</option>
+          <option value="alerta">Alerta</option>
+          <option value="critico">Crítico</option>
+          <option value="nao-conforme">Não conforme</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-footer">
+      <div class="active-filters" *ngIf="hasActiveFilters">
+        <span *ngIf="selectedLegislacao" class="filter-chip">
+          {{ getLegislacaoNome(selectedLegislacao) }}
+          <button type="button" (click)="removerLegislacao()" aria-label="Remover legislação">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </span>
+        <span *ngIf="selectedMatriz" class="filter-chip">
+          {{ getMatrizNome(selectedMatriz) }}
+          <button type="button" (click)="removerMatriz()" aria-label="Remover matriz">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </span>
+        <span *ngIf="filtroParametro.length" class="filter-chip">
+          {{ filtroParametro.length }} parâmetro(s)
+        </span>
+      </div>
+
+      <button class="apply-button" type="button" (click)="filtrar()" [disabled]="loading">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        {{ loading ? 'Aplicando...' : 'Aplicar filtros' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="results-section" aria-labelledby="results-title">
+    <div class="results-heading">
+      <div>
+        <h2 id="results-title">Resultados monitorados</h2>
+        <p>{{ parameters.length }} resultado(s) encontrado(s)</p>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="state-card" role="status">
+      <span class="inline-spinner" aria-hidden="true"></span>
+      <strong>Carregando resultados</strong>
+      <p>Isso deve levar apenas alguns instantes.</p>
+    </div>
+
+    <div *ngIf="!loading && error" class="state-card error-state" role="alert">
+      <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+      <strong>Não foi possível carregar os dados</strong>
+      <p>{{ error }}</p>
+      <button type="button" (click)="loadInitialData()">Tentar novamente</button>
+    </div>
+
+    <div *ngIf="!loading && !error && parameters.length === 0" class="state-card">
+      <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+      <strong>Nenhum resultado encontrado</strong>
+      <p>Ajuste os filtros para ampliar a busca.</p>
+      <button *ngIf="hasActiveFilters" type="button" (click)="limparFiltros()">
+        Limpar filtros
+      </button>
+    </div>
+
+    <div *ngIf="!loading && !error && parameters.length" class="parameters-grid">
+      <article
+        class="parameter-card"
+        *ngFor="let param of parameters; trackBy: trackByParametroId"
+        [ngClass]="'card-' + param.status"
+      >
+        <div class="parameter-header">
+          <div>
+            <span class="parameter-kicker">Parâmetro</span>
+            <h3>{{ param.parameter_name }}</h3>
+          </div>
+          <span [ngClass]="getStatusBadgeClass(param.status)">
+            {{ getStatusText(param.status) }}
+          </span>
+        </div>
+
+        <div class="parameter-value">
+          <strong>{{ formatValue(param.current_value) }}</strong>
+          <span>{{ getUnit(param) }}</span>
+        </div>
+
+        <div class="parameter-limits">
+          <span>Faixa de referência</span>
+          <strong>
+            {{ formatValue(getMinimum(param)) }} – {{ formatValue(getMaximum(param)) }}
+            {{ getUnit(param) }}
+          </strong>
+        </div>
+
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-label="Posição do valor na faixa de referência"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span [class]="'progress-fill fill-' + param.status" [style.width]="getProgressWidth(param)"></span>
+        </div>
+
+        <footer>
+          <i class="fa-regular fa-clock" aria-hidden="true"></i>
+          {{ getTimeAgo(param.last_update) }}
+        </footer>
+      </article>
+    </div>
+  </section>
+</div>

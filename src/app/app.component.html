@@ -1,0 +1,139 @@
+<header class="sysmlab-header">
+  <div class="header-container">
+    <a
+      class="brand"
+      routerLink="/dashboard-web"
+      aria-label="Ir para o dashboard do SYSmLab"
+      (click)="closeMenu()"
+    >
+      <span class="brand-icon" aria-hidden="true">
+        <i class="fa-solid fa-flask"></i>
+      </span>
+      <span class="brand-copy">
+        <strong>SYSmLab</strong>
+        <small>Monitoramento laboratorial</small>
+      </span>
+    </a>
+
+    <div class="header-actions" *ngIf="isLoggedIn">
+      <button
+        *ngIf="mostrarBotaoParametros"
+        class="filter-button"
+        type="button"
+        (click)="abrirFiltroParametros()"
+        [attr.aria-label]="
+          parametrosAtivosCount
+            ? parametrosAtivosCount + ' parâmetros ativos. Alterar filtro'
+            : 'Filtrar parâmetros'
+        "
+      >
+        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+        <span>Filtrar</span>
+        <span class="filter-count" *ngIf="parametrosAtivosCount > 0">
+          {{ parametrosAtivosCount }}
+        </span>
+      </button>
+
+      <div class="user-info" [title]="userEmail">
+        <span class="user-avatar" aria-hidden="true">
+          {{ userName ? (userName | slice: 0 : 2 | uppercase) : 'US' }}
+        </span>
+        <span class="user-details">
+          <strong>{{ userName }}</strong>
+          <small>{{ userEmail }}</small>
+        </span>
+      </div>
+
+      <button
+        class="logout-button"
+        type="button"
+        (click)="logout()"
+        aria-label="Sair do sistema"
+      >
+        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+        <span>Sair</span>
+      </button>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        aria-controls="main-navigation"
+        aria-label="Abrir menu de navegação"
+      >
+        <i
+          class="fa-solid"
+          [ngClass]="menuOpen ? 'fa-xmark' : 'fa-bars'"
+          aria-hidden="true"
+        ></i>
+      </button>
+    </div>
+  </div>
+
+  <nav
+    *ngIf="isLoggedIn"
+    id="main-navigation"
+    class="menu-nav"
+    [class.menu-open]="menuOpen"
+    aria-label="Navegação principal"
+  >
+    <div class="menu-container">
+      <a
+        *ngFor="let item of visibleNavigationItems"
+        class="menu-item"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [attr.title]="item.label"
+        (click)="closeMenu()"
+      >
+        <i class="fa-solid" [ngClass]="item.icon" aria-hidden="true"></i>
+        <span class="menu-label">{{ item.label }}</span>
+        <span class="menu-label-short">{{ item.shortLabel }}</span>
+      </a>
+    </div>
+  </nav>
+</header>
+
+<div
+  *ngIf="showFilterModal"
+  class="modal-overlay"
+  role="presentation"
+  (click)="fecharFiltroParametros()"
+>
+  <div
+    class="filter-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Filtrar parâmetros visíveis"
+    (click)="$event.stopPropagation()"
+  >
+    <app-modal-filtro-parametros
+      (closed)="fecharFiltroParametros()"
+    ></app-modal-filtro-parametros>
+  </div>
+</div>
+
+<main class="main-container" [class.auth-route]="isAuthRoute">
+  <div class="route-loading" *ngIf="isLoading || isRouteLoading" role="status">
+    <span class="loading-spinner" aria-hidden="true"></span>
+    <span class="visually-hidden">Carregando...</span>
+  </div>
+
+  <div class="router-outlet">
+    <div class="page-container">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</main>
+
+<footer class="sysmlab-footer">
+  <div class="footer-content">
+    <span>© {{ currentYear }} SYSmLab</span>
+    <span aria-hidden="true">•</span>
+    <span>Sistema de Monitoramento Laboratorial</span>
+    <span aria-hidden="true">•</span>
+    <span>Versão 2.1.0</span>
+  </div>
+</footer>

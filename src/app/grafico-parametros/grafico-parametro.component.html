@@ -1,0 +1,46 @@
+<div class="grafico-container">
+  <div class="header">
+    <h2 class="header-title">Gráfico de Parâmetros</h2>
+    <button *ngIf="errorMessage" (click)="recarregar()" class="btn btn-sm btn-outline-primary">
+      <i class="fas fa-redo"></i> Tentar Novamente
+    </button>
+  </div>
+
+  <!-- Estados do gráfico -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner-border text-primary"></div>
+    <p>Carregando dados do gráfico...</p>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-state alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && labels.length === 0" class="empty-state alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    Nenhum parâmetro configurado para exibir no gráfico.
+  </div>
+
+  <!-- Gráfico -->
+  <div *ngIf="!isLoading && !errorMessage && hasData" class="chart-container">
+
+    <div class="chart-center">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title mb-3 fw-bold text-secondary">
+            Total de Parâmetros ({{ labels.length }})
+          </h4>
+
+          <div class="chart-wrapper">
+            <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="barChartType">
+            </canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+</div>

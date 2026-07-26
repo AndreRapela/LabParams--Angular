@@ -1,0 +1,211 @@
+/* src/app/alertas/alertas.component.css */
+
+/* === LAYOUT PRINCIPAL === */
+.alertas-container {
+  background-color: #f8fafc; /* Fundo cinza suave */
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.page-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1.9rem !important;
+}
+
+/* === NOVO ESTILO DA MARCA (LOGO AZUL) === */
+
+/* O container quadrado azul */
+.logo-box {
+  width: 48px;
+  height: 48px;
+  background-color: #3b82f6; /* Azul Índigo vibrante */
+  border-radius: 12px;       /* Cantos arredondados estilo App */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.4rem;         /* Tamanho do ícone do frasco */
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); /* Sombra suave azul */
+}
+
+/* O texto "SYSmLab" */
+.brand-text {
+  color: #3b82f6;           /* Mesmo azul do quadrado */
+  font-weight: 800;         /* Fonte bem grossa */
+  font-size: 1.75rem;       /* Tamanho grande */
+  letter-spacing: -0.5px;   /* Letras levemente juntas */
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* === CARDS SUPERIORES (ESTATÍSTICAS) === */
+.stats-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  height: 100%;
+  transition: transform 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-card .value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  line-height: 1;
+}
+
+/* === TABELA E CONTEÚDO === */
+.content-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  overflow: visible; /* Necessário para sombras e focus */
+}
+
+/* Cabeçalho da Tabela */
+.card-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.5rem;
+}
+
+.table th {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.table td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  vertical-align: middle;
+}
+
+/* Animação do ícone de refresh */
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* === ESTILIZAÇÃO DOS FILTROS (MAIORES / CHUNKY) === */
+
+/* Define altura e bordas base para todos os elementos de filtro */
+.filters-wrapper .form-select,
+.filters-wrapper .form-control,
+.filters-wrapper .input-group-text,
+.filters-wrapper .btn {
+  height: 50px !important; /* Altura robusta */
+  font-size: 0.95rem;
+  border: 1px solid #cbd5e1;
+}
+
+/* Select isolado */
+.filters-wrapper .form-select {
+  border-radius: 8px;
+}
+
+/* Correção do Filtro de Busca (Estilo Unificado) */
+
+/* 1. O ícone da Lupa (Esquerda) */
+.filters-wrapper .input-group .input-group-text {
+  background-color: #fff;
+  border-right: none;          /* Remove linha divisória com o input */
+  color: #94a3b8;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+/* 2. O Campo de Texto (Meio) */
+.filters-wrapper .input-group .form-control {
+  border-left: none;  /* Remove linha da esquerda */
+  border-right: none; /* Remove linha da direita */
+  box-shadow: none !important; /* Remove glow padrão do bootstrap */
+  padding-left: 0; /* Texto mais próximo da lupa */
+}
+
+/* Ajuste Fino: Se o campo estiver vazio (sem botão X), fecha a borda direita */
+.filters-wrapper .input-group .form-control:last-child {
+  border-right: 1px solid #cbd5e1;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* 3. O Botão de Limpar 'X' (Direita) */
+.filters-wrapper .input-group .btn-outline-secondary {
+  background-color: #fff;
+  border-left: none; /* Remove linha divisória com o input */
+  color: #94a3b8;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  transition: all 0.2s;
+}
+
+/* Efeito ao passar o mouse no X */
+.filters-wrapper .input-group .btn-outline-secondary:hover {
+  color: #ef4444; /* Vermelho */
+  background-color: #fff;
+  border-color: #cbd5e1; /* Mantém a borda cinza para não "pular" */
+}
+
+/* Efeito de Foco no Grupo Inteiro (Simula que a caixa toda acendeu) */
+.filters-wrapper .input-group:focus-within .input-group-text,
+.filters-wrapper .input-group:focus-within .form-control,
+.filters-wrapper .input-group:focus-within .btn {
+  border-color: #3b82f6; /* Azul */
+  z-index: 2;
+}
+
+/* Efeito de Foco no Select */
+.filters-wrapper .form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* === CORES CUSTOMIZADAS (LARANJA E AMARELO ESCURO) === */
+
+/* Laranja (Não Conforme) */
+.text-orange { color: #fd7e14 !important; }
+.text-orange-emphasis { color: #c2410c !important; }
+.bg-orange-subtle { background-color: #ffedd5 !important; }
+.border-orange { border-color: #fd7e14 !important; }
+
+/* Amarelo (Alerta - Ajuste de Contraste) */
+.text-warning-emphasis { color: #b45309 !important; }
+.bg-warning-subtle { background-color: #fef3c7 !important; }
+
+/* === RESPONSIVIDADE === */
+@media (max-width: 768px) {
+  .alertas-container {
+    padding: 1rem;
+  }
+  .filters-wrapper {
+    width: 100%;
+    flex-direction: column;
+  }
+  /* Em mobile, garante largura total */
+  .filters-wrapper select,
+  .filters-wrapper .input-group,
+  .filters-wrapper .input-group .form-control {
+    width: 100% !important;
+  }
+}

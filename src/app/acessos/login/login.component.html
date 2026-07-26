@@ -1,0 +1,75 @@
+<section class="login-page" aria-labelledby="login-title">
+  <div class="login-wrapper">
+    <div class="logo-block">
+      <div class="logo-icon" aria-hidden="true">
+        <i class="fa-solid fa-flask"></i>
+      </div>
+      <h1 class="logo-title">SYSmLab</h1>
+      <p class="logo-subtitle">
+        Sistema inteligente de monitoramento para laboratórios ambientais
+      </p>
+    </div>
+
+    <div class="login-card">
+      <header class="card-header">
+        <h2 id="login-title" class="card-title">Acesso ao sistema</h2>
+        <p class="card-description">
+          Entre com suas credenciais para continuar
+        </p>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+        <div *ngIf="loginErro" class="alerta-erro" role="alert">
+          {{ loginErro }}
+        </div>
+
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="seu@email.com"
+            [attr.aria-invalid]="form.get('email')?.touched && form.get('email')?.invalid"
+          />
+          <span
+            *ngIf="form.get('email')?.touched && form.get('email')?.invalid"
+            class="field-error"
+          >
+            Informe um e-mail válido.
+          </span>
+        </div>
+
+        <div class="field">
+          <label for="senha">Senha</label>
+          <input
+            id="senha"
+            type="password"
+            formControlName="senha"
+            autocomplete="current-password"
+            placeholder="Digite sua senha"
+            [attr.aria-invalid]="form.get('senha')?.touched && form.get('senha')?.invalid"
+          />
+        </div>
+
+        <button
+          class="submit-button"
+          type="submit"
+          [disabled]="loading || form.invalid"
+        >
+          {{ loading ? 'Entrando...' : 'Entrar' }}
+        </button>
+
+        <button
+          class="forgot-password"
+          type="button"
+          (click)="goToForgotPassword()"
+        >
+          Esqueci minha senha
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
