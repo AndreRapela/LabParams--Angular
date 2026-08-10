@@ -1,0 +1,410 @@
+<main class="pilot-page" aria-labelledby="revisao-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Controle técnico e assinatura</p>
+      <h1 id="revisao-title">Revisão de resultados</h1>
+      <p>Submeta, revise, aprove e publique resultados com rastreabilidade.</p>
+    </div>
+    <div class="summary-grid" aria-label="Resumo do workflow">
+      <div class="summary-card">
+        <strong>{{ resultados.length }}</strong
+        ><span>Total</span>
+      </div>
+      <div class="summary-card">
+        <strong>{{ aguardandoRevisao }}</strong
+        ><span>Aguardando revisão</span>
+      </div>
+      <div class="summary-card">
+        <strong>{{ aguardandoPublicacao }}</strong
+        ><span>Aguardando publicação</span>
+      </div>
+    </div>
+  </header>
+  <div *ngIf="feedback" class="feedback success" role="status">
+    {{ feedback }}
+  </div>
+  <div *ngIf="error" class="feedback error" role="alert">{{ error }}</div>
+  <section class="toolbar" aria-label="Filtros da revisão">
+    <label class="search-field"
+      ><span class="sr-only">Buscar resultado</span
+      ><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i
+      ><input
+        type="search"
+        [formControl]="buscaControl"
+        placeholder="Amostra, parâmetro ou matriz" /></label
+    ><label class="status-filter"
+      ><span class="sr-only">Filtrar por status</span
+      ><select [formControl]="statusControl">
+        <option *ngFor="let option of statusOptions" [ngValue]="option.value">
+          {{ option.label }}
+        </option>
+      </select></label
+    ><button
+      type="button"
+      class="btn-pilot"
+      (click)="carregar()"
+      [disabled]="loading"
+    >
+      <i class="fa-solid fa-rotate" aria-hidden="true"></i> Atualizar
+    </button>
+  </section>
+  <section class="pilot-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state" role="status">
+      <span class="spinner-border text-primary" aria-hidden="true"></span
+      >Carregando fila de revisão…
+    </div>
+    <div *ngIf="!loading && !resultadosFiltrados.length" class="empty-state">
+      <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+      <h2>
+        {{
+          resultados.length
+            ? "Nenhum resultado corresponde aos filtros"
+            : "Fila de revisão vazia"
+        }}
+      </h2>
+      <p>
+        Os resultados registrados aparecerão aqui para controle do workflow.
+      </p>
+    </div>
+    <div *ngIf="!loading && resultadosFiltrados.length" class="table-wrap">
+      <table class="pilot-table">
+        <caption class="sr-only">
+          Resultados e estados de revisão
+        </caption>
+        <thead>
+          <tr>
+            <th>Amostra</th>
+            <th>Ensaio</th>
+            <th>Resultado</th>
+            <th>Conformidade</th>
+            <th>Workflow</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="
+              let resultado of resultadosFiltrados;
+              trackBy: trackByResultId
+            "
+          >
+            <td data-label="Amostra">
+              <strong>{{ amostraLabel(resultado) }}</strong
+              ><small>Coleta: {{ formatDate(resultado.datacoleta) }}</small>
+            </td>
+            <td data-label="Ensaio">
+              <strong>{{
+                resultado.parametro_nome ||
+                  "Parâmetro " + resultado.parametro_id
+              }}</strong
+              ><small>{{
+                resultado.matriz_nome ||
+                  resultado.matriz ||
+                  "Matriz não informada"
+              }}</small>
+            </td>
+            <td data-label="Resultado">
+              <strong>{{ valorResultado(resultado) }}</strong
+              ><small>Versão {{ resultado.versao || 1 }}</small>
+            </td>
+            <td data-label="Conformidade">
+              <span
+                class="badge-pilot"
+                [attr.data-tone]="
+                  resultado.status_conformidade === 'nao-conforme'
+                    ? 'danger'
+                    : resultado.status_conformidade === 'conforme'
+                      ? 'success'
+                      : 'neutral'
+                "
+                >{{ conformidadeLabel(resultado) }}</span
+              >
+            </td>
+            <td data-label="Workflow">
+              <span
+                class="badge-pilot"
+                [attr.data-tone]="statusTone(statusOf(resultado))"
+                >{{ statusLabel(statusOf(resultado)) }}</span
+              >
+            </td>
+            <td data-label="Ação" class="actions-cell">
+              <button
+                type="button"
+                class="btn-pilot compact"
+                (click)="abrir(resultado)"
+              >
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> Analisar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div
+  *ngIf="selecionado"
+  class="dialog-backdrop"
+  role="presentation"
+  (click)="fechar()"
+>
+  <section
+    class="dialog-panel wide review-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="review-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="eyebrow">
+          {{ amostraLabel(selecionado) }} · versão {{ selecionado.versao || 1 }}
+        </p>
+        <h2 id="review-dialog-title">
+          {{ selecionado.parametro_nome || "Resultado analítico" }}
+        </h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        (click)="fechar()"
+        [disabled]="saving"
+        aria-label="Fechar"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div *ngIf="loadingDetail" class="loading-state" role="status">
+      <span class="spinner-border text-primary" aria-hidden="true"></span
+      >Carregando dossiê do resultado…
+    </div>
+    <div *ngIf="!loadingDetail" class="review-body">
+      <div *ngIf="detailError" class="feedback error" role="alert">
+        {{ detailError }}
+      </div>
+      <section class="result-summary" aria-label="Resumo do resultado">
+        <div class="result-value">
+          <span>Resultado reportado</span
+          ><strong>{{ valorResultado(selecionado) }}</strong>
+        </div>
+        <dl>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span
+                class="badge-pilot"
+                [attr.data-tone]="statusTone(statusOf(selecionado))"
+                >{{ statusLabel(statusOf(selecionado)) }}</span
+              >
+            </dd>
+          </div>
+          <div>
+            <dt>Conformidade</dt>
+            <dd>{{ conformidadeLabel(selecionado) }}</dd>
+          </div>
+          <div>
+            <dt>Critério legal</dt>
+            <dd>{{ selecionado.criterio_legal || "Não informado" }}</dd>
+          </div>
+          <div>
+            <dt>Contexto</dt>
+            <dd>
+              {{
+                selecionado.contexto_nome ||
+                  selecionado.legislacao_sigla ||
+                  "Não informado"
+              }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section class="workflow-actions" *ngIf="!action">
+        <button
+          *ngIf="canSubmit(selecionado)"
+          type="button"
+          class="btn-pilot primary"
+          (click)="iniciarAcao('submeter')"
+        >
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submeter
+          para revisão</button
+        ><button
+          *ngIf="statusOf(selecionado) === 'em_revisao' && isGestor"
+          type="button"
+          class="btn-pilot primary"
+          (click)="iniciarAcao('revisar')"
+        >
+          <i class="fa-solid fa-user-check" aria-hidden="true"></i> Registrar
+          revisão</button
+        ><button
+          *ngIf="statusOf(selecionado) === 'aprovado' && isGestor"
+          type="button"
+          class="btn-pilot success"
+          (click)="iniciarAcao('publicar')"
+        >
+          <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
+          Publicar resultado</button
+        ><span
+          *ngIf="statusOf(selecionado) === 'rejeitado'"
+          class="locked-state correction"
+          ><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Corrija
+          o resultado antes de submetê-lo novamente</span
+        ><span
+          *ngIf="
+            (statusOf(selecionado) === 'em_revisao' ||
+              statusOf(selecionado) === 'aprovado') &&
+            !isGestor
+          "
+          class="locked-state"
+          ><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Aguardando
+          ação de um Gestor</span
+        ><span
+          *ngIf="statusOf(selecionado) === 'publicado'"
+          class="locked-state"
+          ><i class="fa-solid fa-lock" aria-hidden="true"></i> Resultado
+          publicado e protegido contra edição</span
+        >
+      </section>
+      <form
+        *ngIf="action"
+        class="action-panel"
+        [formGroup]="actionForm"
+        (ngSubmit)="confirmarAcao()"
+      >
+        <div>
+          <p class="eyebrow">Confirmação controlada</p>
+          <h3>{{ actionTitle() }}</h3>
+        </div>
+        <fieldset *ngIf="action === 'revisar'" class="decision-field">
+          <legend>Decisão técnica</legend>
+          <label
+            ><input
+              type="radio"
+              formControlName="decisao"
+              value="aprovar"
+              (change)="decisaoAlterada()"
+            /><span
+              ><i class="fa-solid fa-check" aria-hidden="true"></i>
+              Aprovar</span
+            ></label
+          ><label
+            ><input
+              type="radio"
+              formControlName="decisao"
+              value="rejeitar"
+              (change)="decisaoAlterada()"
+            /><span
+              ><i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              Rejeitar</span
+            ></label
+          >
+        </fieldset>
+        <div *ngIf="requiresPassword()" class="field">
+          <label for="workflow-password">Confirme sua senha</label
+          ><input
+            id="workflow-password"
+            type="password"
+            formControlName="senha"
+            autocomplete="current-password"
+            [attr.aria-invalid]="
+              actionForm.controls.senha.invalid &&
+              actionForm.controls.senha.touched
+            "
+          /><small class="field-hint"
+            >A senha confirma sua identidade e registra a assinatura
+            eletrônica.</small
+          ><small
+            *ngIf="
+              actionForm.controls.senha.invalid &&
+              actionForm.controls.senha.touched
+            "
+            class="field-error"
+            >Informe sua senha.</small
+          >
+        </div>
+        <div class="field">
+          <label for="workflow-comment"
+            >{{ action === "revisar" ? "Justificativa técnica" : "Comentário" }}
+            <span class="optional"
+              >({{ requiresComment() ? "obrigatório" : "opcional" }})</span
+            ></label
+          ><textarea
+            id="workflow-comment"
+            formControlName="comentario"
+            [attr.placeholder]="
+              action === 'revisar'
+                ? 'Registre a justificativa técnica da decisão'
+                : 'Adicione uma observação, se necessário'
+            "
+            [attr.aria-invalid]="
+              actionForm.controls.comentario.invalid &&
+              actionForm.controls.comentario.touched
+            "
+          ></textarea
+          ><small
+            *ngIf="
+              actionForm.controls.comentario.invalid &&
+              actionForm.controls.comentario.touched
+            "
+            class="field-error"
+            >Informe a justificativa técnica da decisão.</small
+          >
+        </div>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="btn-pilot"
+            (click)="cancelarAcao()"
+            [disabled]="saving"
+          >
+            Cancelar</button
+          ><button
+            type="submit"
+            class="btn-pilot"
+            [class.success]="
+              action !== 'revisar' ||
+              actionForm.controls.decisao.value === 'aprovar'
+            "
+            [class.danger]="
+              action === 'revisar' &&
+              actionForm.controls.decisao.value === 'rejeitar'
+            "
+            [disabled]="saving"
+          >
+            <span
+              *ngIf="saving"
+              class="spinner-border spinner-border-sm"
+              aria-hidden="true"
+            ></span
+            >{{ saving ? "Registrando…" : "Confirmar ação" }}
+          </button>
+        </div>
+      </form>
+      <section class="history">
+        <div class="history-heading">
+          <h3>Histórico do workflow</h3>
+          <span>{{ historico.length }} evento(s)</span>
+        </div>
+        <ol *ngIf="historico.length" class="timeline">
+          <li *ngFor="let event of historico; trackBy: trackByHistoryId">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div>
+              <strong>{{ actionLabel(event.acao) }}</strong
+              ><small
+                >{{ formatDate(event.created_at) }} ·
+                {{ event.ator_nome || event.ator_email || "Processo do sistema"
+                }}<ng-container *ngIf="event.ator_nome && event.ator_email">
+                  ({{ event.ator_email }})</ng-container
+                ></small
+              >
+              <p *ngIf="event.comentario">{{ event.comentario }}</p>
+            </div>
+          </li>
+        </ol>
+        <p *ngIf="!historico.length" class="muted">
+          Nenhuma transição registrada até o momento.
+        </p>
+      </section>
+    </div>
+  </section>
+</div>

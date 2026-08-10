@@ -1,18 +1,36 @@
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { API_CONFIG } from '../../config/api.config';
+import { ImportacaoResposta } from './importacao-resultado.model';
 import { ImportacaoResultadoService } from './importacao-resultado.service';
-import { environment } from '../../environments/environment';
 
 describe('ImportacaoResultadoService', () => {
   let service: ImportacaoResultadoService;
   let httpMock: HttpTestingController;
-  const apiUrl = environment.apiUrl || 'http://localhost:3000';
+  const importacaoUrl = `${API_CONFIG.baseUrl}/importacao`;
+
+  const respostaSucesso: ImportacaoResposta = {
+    success: true,
+    message: 'Importação concluída',
+    resumo: {
+      total_linhas: 50,
+      validadas_com_sucesso: 48,
+      inseridas_no_banco: 48,
+      erros_validacao: 2,
+      erros_insercao: 0,
+      total_erros: 2
+    },
+    erros: [
+      { linha: 2, erro: 'Parâmetro não encontrado', dados: {} }
+    ]
+  };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [ImportacaoResultadoService]
     });
+
     service = TestBed.inject(ImportacaoResultadoService);
     httpMock = TestBed.inject(HttpTestingController);
   });
@@ -25,195 +43,160 @@ describe('ImportacaoResultadoService', () => {
     expect(service).toBeTruthy();
   });
 
-  // =================================================================
-  // TESTES DE IMPORTAÇÃO DE PLANILHA
-  // =================================================================
-
   describe('importarPlanilha()', () => {
-    it('deve enviar arquivo CSV via FormData', () => {
-      const file = new File(['test'], 'teste.csv', { type: 'text/csv' });
-      const mockResponse = {
-        success: true,
-        message: 'Importação concluída',
-        resumo: {
-          total_linhas: 50,
-          inseridas_no_banco: 48,
-          erros_validacao: 2,
-          erros_insercao: 0
-        }
-      };
+    it('deve enviar arquivo CSV via FormData e retornar o contrato tipado', () => {
+      const file = new File(['teste'], 'resultados.csv', { type: 'text/csv' });
+      let respostaRecebida: ImportacaoResposta | undefined;
 
-      service.importarPlanilha(file).subscribe(response => {
-        expect(response).toEqual(mockResponse);
+      service.importarPlanilha(file).subscribe((response) => {
+        respostaRecebida = response;
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body instanceof FormData).toBeTrue();
-      expect(req.request.body.get('arquivo')).toBe(file);
+      const request = httpMock.expectOne(`${importacaoUrl}/resultado-analise`);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body instanceof FormData).toBeTrue();
+      expect(request.request.body.get('arquivo')).toBe(file);
 
-      req.flush(mockResponse);
+      request.flush(respostaSucesso);
+      expect(respostaRecebida).toEqual(respostaSucesso);
     });
 
     it('deve enviar arquivo XLSX via FormData', () => {
-      const file = new File(['test'], 'teste.xlsx', {
+      const file = new File(['teste'], 'resultados.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
 
       service.importarPlanilha(file).subscribe();
 
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      expect(req.request.body.get('arquivo')).toBe(file);
-
-      req.flush({ success: true });
+      const request = httpMock.expectOne(`${importacaoUrl}/resultado-analise`);
+      expect(request.request.body.get('arquivo')).toBe(file);
+      request.flush(respostaSucesso);
     });
 
-    it('deve lidar com erro 400 (arquivo inválido)', () => {
-      const file = new File(['test'], 'invalido.csv');
-      const mockError = {
+    it('deve preservar o corpo completo de uma resposta HTTP 422', () => {
+      const file = new File(['teste'], 'invalido.csv', { type: 'text/csv' });
+      const respostaSemInsercoes: ImportacaoResposta = {
         success: false,
-        message: 'Arquivo inválido',
-        error: 'Formato não suportado'
+        message: 'Nenhum registro foi inserido no banco de dados',
+        resumo: {
+          total_linhas: 2,
+          validadas_com_sucesso: 0,
+          inseridas_no_banco: 0,
+          erros_validacao: 2,
+          erros_insercao: 0,
+          total_erros: 2
+        },
+        erros: [
+          { linha: 2, erro: 'Amostra não encontrada', dados: {} },
+          { linha: 3, erro: 'Valor medido inválido', dados: {} }
+        ]
       };
+      let corpoRecebido: unknown;
 
-      service.importarPlanilha(file).subscribe(
-        () => fail('Deveria ter falhado'),
-        error => {
-          expect(error.status).toBe(400);
-          expect(error.error).toEqual(mockError);
+      service.importarPlanilha(file).subscribe({
+        next: () => fail('A requisição deveria retornar erro'),
+        error: (error: unknown) => {
+          if (typeof error === 'object' && error !== null && 'error' in error) {
+            corpoRecebido = error.error;
+          }
         }
-      );
+      });
 
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      req.flush(mockError, { status: 400, statusText: 'Bad Request' });
+      const request = httpMock.expectOne(`${importacaoUrl}/resultado-analise`);
+      request.flush(respostaSemInsercoes, {
+        status: 422,
+        statusText: 'Unprocessable Entity'
+      });
+
+      expect(corpoRecebido).toEqual(respostaSemInsercoes);
     });
 
-    it('deve lidar com erro 401 (não autenticado)', () => {
-      const file = new File(['test'], 'teste.csv');
+    it('deve propagar erro de autenticação', () => {
+      const file = new File(['teste'], 'resultados.csv', { type: 'text/csv' });
+      let statusRecebido: number | undefined;
 
-      service.importarPlanilha(file).subscribe(
-        () => fail('Deveria ter falhado'),
-        error => {
-          expect(error.status).toBe(401);
+      service.importarPlanilha(file).subscribe({
+        next: () => fail('A requisição deveria retornar erro'),
+        error: (error: unknown) => {
+          if (typeof error === 'object' && error !== null && 'status' in error) {
+            statusRecebido = error.status as number;
+          }
         }
-      );
+      });
 
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      req.flush(
+      const request = httpMock.expectOne(`${importacaoUrl}/resultado-analise`);
+      request.flush(
         { error: 'Token ausente ou inválido' },
         { status: 401, statusText: 'Unauthorized' }
       );
+
+      expect(statusRecebido).toBe(401);
     });
 
-    it('deve lidar com erro 500 (erro interno)', () => {
-      const file = new File(['test'], 'teste.csv');
-
-      service.importarPlanilha(file).subscribe(
-        () => fail('Deveria ter falhado'),
-        error => {
-          expect(error.status).toBe(500);
-        }
-      );
-
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      req.flush(
-        { error: 'Erro interno do servidor' },
-        { status: 500, statusText: 'Internal Server Error' }
-      );
-    });
-  });
-
-  // =================================================================
-  // TESTES DE DOWNLOAD DE TEMPLATE
-  // =================================================================
-
-  describe('baixarTemplate()', () => {
-    it('deve abrir nova janela para template CSV', () => {
-      spyOn(window, 'open');
-
-      service.baixarTemplate('csv');
-
-      expect(window.open).toHaveBeenCalledWith(
-        `${apiUrl}/importacao/template?formato=csv`,
-        '_blank'
-      );
-    });
-
-    it('deve abrir nova janela para template XLSX', () => {
-      spyOn(window, 'open');
-
-      service.baixarTemplate('xlsx');
-
-      expect(window.open).toHaveBeenCalledWith(
-        `${apiUrl}/importacao/template?formato=xlsx`,
-        '_blank'
-      );
-    });
-
-    it('deve usar CSV como padrão', () => {
-      spyOn(window, 'open');
-
-      service.baixarTemplate();
-
-      expect(window.open).toHaveBeenCalledWith(
-        `${apiUrl}/importacao/template?formato=csv`,
-        '_blank'
-      );
-    });
-  });
-
-  // =================================================================
-  // TESTES DE RESPOSTA COM ERROS DE VALIDAÇÃO
-  // =================================================================
-
-  describe('Resposta com erros de validação', () => {
-    it('deve processar resposta com erros de validação', () => {
-      const file = new File(['test'], 'com_erros.csv');
-      const mockResponse = {
-        success: false,
-        message: 'Nenhum registro foi inserido',
-        resumo: {
-          total_linhas: 10,
-          validadas_com_sucesso: 0,
-          inseridas_no_banco: 0,
-          erros_validacao: 10,
-          erros_insercao: 0,
-          total_erros: 10
-        },
-        erros: [
-          { linha: 2, dados: {}, erro: 'Campo obrigatório faltando' },
-          { linha: 3, dados: {}, erro: 'Valor inválido' }
-        ]
-      };
-
-      service.importarPlanilha(file).subscribe(response => {
-        expect(response.erros.length).toBe(2);
-        expect(response.resumo.erros_validacao).toBe(10);
-      });
-
-      const req = httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
-      req.flush(mockResponse);
-    });
-  });
-
-  // =================================================================
-  // TESTES DE TIMEOUT
-  // =================================================================
-
-  describe('Timeout de requisição', () => {
-    it('deve lidar com timeout de requisição', fakeAsync(() => {
-      const file = new File(['test'], 'grande.csv');
-      let receivedError: Error | undefined;
+    it('deve encerrar uma importação que ultrapasse cinco minutos', fakeAsync(() => {
+      const file = new File(['teste'], 'resultados.csv', { type: 'text/csv' });
+      let nomeErro: string | undefined;
 
       service.importarPlanilha(file).subscribe({
-        next: () => fail('Deveria ter dado timeout'),
-        error: error => receivedError = error
+        next: () => fail('A requisição deveria expirar'),
+        error: (error: unknown) => {
+          if (error instanceof Error) {
+            nomeErro = error.name;
+          }
+        }
       });
 
-      httpMock.expectOne(`${apiUrl}/importacao/resultado-analise`);
+      httpMock.expectOne(`${importacaoUrl}/resultado-analise`);
       tick(300_001);
 
-      expect(receivedError?.name).toBe('TimeoutError');
+      expect(nomeErro).toBe('TimeoutError');
     }));
+  });
+
+  describe('baixarTemplate()', () => {
+    it('deve baixar o modelo CSV como Blob pelo HttpClient', () => {
+      const arquivo = new Blob(['coluna\nvalor'], { type: 'text/csv' });
+      let blobRecebido: Blob | undefined;
+
+      service.baixarTemplate('csv').subscribe((blob) => {
+        blobRecebido = blob;
+      });
+
+      const request = httpMock.expectOne(
+        (candidate) => candidate.url === `${importacaoUrl}/template`
+          && candidate.params.get('formato') === 'csv'
+      );
+      expect(request.request.method).toBe('GET');
+      expect(request.request.responseType).toBe('blob');
+
+      request.flush(arquivo);
+      expect(blobRecebido).toEqual(arquivo);
+    });
+
+    it('deve baixar o modelo XLSX como Blob', () => {
+      const arquivo = new Blob(['xlsx'], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      service.baixarTemplate('xlsx').subscribe();
+
+      const request = httpMock.expectOne(
+        (candidate) => candidate.url === `${importacaoUrl}/template`
+          && candidate.params.get('formato') === 'xlsx'
+      );
+      expect(request.request.responseType).toBe('blob');
+      request.flush(arquivo);
+    });
+
+    it('deve usar CSV como formato padrão', () => {
+      service.baixarTemplate().subscribe();
+
+      const request = httpMock.expectOne(
+        (candidate) => candidate.url === `${importacaoUrl}/template`
+          && candidate.params.get('formato') === 'csv'
+      );
+      expect(request.request.params.get('formato')).toBe('csv');
+      request.flush(new Blob(['csv'], { type: 'text/csv' }));
+    });
   });
 });

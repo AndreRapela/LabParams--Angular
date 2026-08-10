@@ -23,13 +23,17 @@ export class GraficoParametroComponent implements OnInit {
       },
       title: {
         display: true,
-        text: 'Valores dos Parâmetros',
+        text: 'Média dos Resultados Numéricos',
         font: { size: 16 }
       },
       tooltip: {
         backgroundColor: 'rgba(30, 41, 59, 0.9)',
         callbacks: {
-          label: (context) => `Valor Ref: ${Number(context.raw).toFixed(4)}`,
+          label: (context) => {
+            const item = this.dadosGrafico[context.dataIndex];
+            const unit = item?.unidade_medida ? ` ${item.unidade_medida}` : '';
+            return `Média: ${Number(context.raw).toLocaleString('pt-BR')}${unit}`;
+          },
           title: (tooltipItems) => {
             const index = tooltipItems[0].dataIndex;
             return this.getLabel(index);
@@ -68,7 +72,7 @@ export class GraficoParametroComponent implements OnInit {
         },
         title: {
           display: true,
-          text: 'Valor de Referência',
+          text: 'Média observada',
           font: { size: 12 }
         },
         ticks: {
@@ -100,6 +104,7 @@ export class GraficoParametroComponent implements OnInit {
 
   public isLoading = true;
   public errorMessage: string | null = null;
+  private dadosGrafico: DadosGrafico[] = [];
 
   public get labels(): string[] {
     return (this.barChartData.labels as string[]) || [];
@@ -133,9 +138,10 @@ export class GraficoParametroComponent implements OnInit {
         this.isLoading = false;
 
         if (response.success && response.data && response.data.length > 0) {
+          this.dadosGrafico = response.data;
           const labels = response.data.map((item: DadosGrafico) => item.parametro);
           const valoresReferencia = response.data.map((item: DadosGrafico) => {
-            const valor = Number(item.valor_parametro);
+            const valor = Number(item.valor_medio);
             return isNaN(valor) ? 0 : valor;
           });
 
@@ -146,7 +152,7 @@ export class GraficoParametroComponent implements OnInit {
             datasets: [
               {
                 data: valoresReferencia,
-                label: 'Valor de Referência',
+                label: 'Média observada',
                 backgroundColor: this.gerarCoresDinamicas(valoresReferencia.length),
                 barThickness: 14,
                 maxBarThickness: 22,
@@ -159,17 +165,23 @@ export class GraficoParametroComponent implements OnInit {
               }
             ]
           };
-        } else {
-          this.errorMessage = response.message || 'Nenhum dado encontrado para exibir no gráfico.';
+        } else if (!response.success) {
+          this.errorMessage = response.message || 'Não foi possível carregar os dados do gráfico.';
           this.barChartData = {
             labels: [],
             datasets: []
           };
+          this.dadosGrafico = [];
+        } else {
+          this.errorMessage = null;
+          this.barChartData = { labels: [], datasets: [] };
+          this.dadosGrafico = [];
         }
       },
       error: (err) => {
         this.isLoading = false;
         this.errorMessage = 'Erro ao carregar dados do gráfico. Tente novamente.';
+        this.dadosGrafico = [];
         console.error('Erro ao carregar gráfico:', err);
       }
     });

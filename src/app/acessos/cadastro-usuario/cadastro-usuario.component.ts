@@ -1,14 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
   AbstractControl
 } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
+import { AuthService, ManagedUser, UserRole } from '../auth/auth.service';
 
 function senhaMatchValidator(control: AbstractControl) {
   const senha = control.get('senha')?.value;
@@ -16,31 +16,50 @@ function senhaMatchValidator(control: AbstractControl) {
   return senha === confirmar ? null : { senhaDiferente: true };
 }
 
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+  const candidate = error as { error?: { error?: unknown }; message?: unknown };
+  if (typeof candidate.error?.error === 'string') return candidate.error.error;
+  if (typeof candidate.message === 'string') return candidate.message;
+  return fallback;
+}
+
 
 
 @Component({
   selector: 'app-cadastrar-usuario',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './cadastro-usuario.component.html'
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './cadastro-usuario.component.html',
+  styleUrl: './cadastro-usuario.component.css'
 })
-export class CadastroUsuarioComponent {
+export class CadastroUsuarioComponent implements OnInit {
+  readonly roles: UserRole[] = ['Usuário', 'Analista', 'Gestor'];
   form: FormGroup;
   loading = false;
+  loadingUsers = true;
+  updatingUserId = '';
+  users: ManagedUser[] = [];
+  selectedRoles: Record<string, UserRole> = {};
+  feedback = '';
+  feedbackType: 'success' | 'error' = 'success';
 
   constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router
+    private readonly fb: FormBuilder,
+    private readonly authService: AuthService
   ) {
     this.form = this.fb.group({
       nome: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       telefone: ['',[Validators.required,Validators.pattern(/^\(\d{2}\) \d{4,5}-\d{4}$/)]],
-      perfil: ['', Validators.required],
+      perfil: ['Usuário', Validators.required],
       senha: ['', [Validators.required, Validators.minLength(8)]],
       confirmarSenha: ['', Validators.required]
     }, { validators: senhaMatchValidator });
+  }
+
+  ngOnInit(): void {
+    void this.loadUsers();
   }
 
   mascaraTelefone(event: Event) {
@@ -64,28 +83,80 @@ export class CadastroUsuarioComponent {
 }
 
 
- onSubmit(): void {
-  if (this.form.invalid) return;
+  onSubmit(): void {
+    if (this.form.invalid || this.loading) return;
+    void this.createUser();
+  }
 
-  this.loading = true;
+  async updateRole(user: ManagedUser): Promise<void> {
+    const perfil = this.selectedRoles[user.id];
+    if (!perfil || perfil === user.perfil || this.updatingUserId) return;
 
-  const { nome, email, telefone, perfil, senha } = this.form.value;
+    this.updatingUserId = user.id;
+    this.clearFeedback();
+    try {
+      await this.authService.updateUserRole(user.id, perfil);
+      this.showFeedback('Perfil atualizado com sucesso.', 'success');
+      await this.loadUsers(false);
+    } catch (error: unknown) {
+      this.selectedRoles[user.id] = user.perfil;
+      this.showFeedback(
+        apiErrorMessage(error, 'Não foi possível atualizar o perfil.'),
+        'error'
+      );
+    } finally {
+      this.updatingUserId = '';
+    }
+  }
 
-  this.authService.register(email, senha, perfil, nome, telefone)
-    .then(res => {
-      this.loading = false;
+  formatDate(value: string): string {
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value));
+  }
 
-      if (res.error) {
-        console.error(res.error);
-        return;
+  private async createUser(): Promise<void> {
+    this.loading = true;
+    this.clearFeedback();
+    const { nome, email, telefone, senha, perfil } = this.form.value;
+
+    try {
+      const response = await this.authService.register(email, senha, nome, telefone, perfil);
+      if (!response.success) {
+        throw new Error(response.error || 'Não foi possível cadastrar o usuário');
       }
-
-      this.router.navigate(['/']);
-    })
-    .catch(err => {
-      console.error(err);
+      this.showFeedback('Usuário cadastrado com sucesso.', 'success');
+      this.form.reset({ nome: '', email: '', telefone: '', perfil: 'Usuário', senha: '', confirmarSenha: '' });
+      await this.loadUsers(false);
+    } catch (error: unknown) {
+      this.showFeedback(
+        apiErrorMessage(error, 'Não foi possível cadastrar o usuário.'),
+        'error'
+      );
+    } finally {
       this.loading = false;
-    });
-}
+    }
+  }
+
+  private async loadUsers(showLoading = true): Promise<void> {
+    if (showLoading) this.loadingUsers = true;
+    try {
+      this.users = await this.authService.listUsers();
+      this.selectedRoles = Object.fromEntries(
+        this.users.map((user) => [user.id, user.perfil])
+      );
+    } catch {
+      this.showFeedback('Não foi possível carregar os usuários.', 'error');
+    } finally {
+      this.loadingUsers = false;
+    }
+  }
+
+  private showFeedback(message: string, type: 'success' | 'error'): void {
+    this.feedback = message;
+    this.feedbackType = type;
+  }
+
+  private clearFeedback(): void {
+    this.feedback = '';
+  }
 
 }

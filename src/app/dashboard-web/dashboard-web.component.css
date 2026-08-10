@@ -297,6 +297,7 @@
 .parameter-card.card-alerta { border-top-color: var(--warning-color); }
 .parameter-card.card-critico,
 .parameter-card.card-nao-conforme { border-top-color: var(--danger-color); }
+.parameter-card.card-informativo { border-top-color: #64748b; }
 
 .parameter-header {
   min-height: 2.7rem;
@@ -332,6 +333,7 @@
 .status-badge.status-alerta { color: #945c04; background: #fff3d5; }
 .status-badge.status-critico,
 .status-badge.status-nao-conforme { color: #a62e38; background: #ffe8ea; }
+.status-badge.status-informativo { color: #475569; background: #eef2f6; }
 
 .parameter-value {
   margin: 1rem 0;
@@ -374,6 +376,7 @@
 .fill-alerta { background: var(--warning-color); }
 .fill-critico,
 .fill-nao-conforme { background: var(--danger-color); }
+.fill-informativo { background: #64748b; }
 
 .parameter-card footer {
   margin-top: 0.75rem;

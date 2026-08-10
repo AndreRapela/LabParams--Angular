@@ -12,6 +12,7 @@
           <th>Limite Máximo</th>
           <th>Matriz</th>
           <th>Legislação</th>
+          <th>Contexto</th>
           <th>Editar</th>
         </tr>
       </thead>
@@ -24,6 +25,7 @@
           <td>{{ p.limite_maximo }}</td>
           <td>{{ p.matriz_nome }}</td>
           <td>{{ p.legislacao_sigla }}</td>
+          <td>{{ p.contexto_nome }}</td>
           <td class="action-col">
             <button class="edit-btn" (click)="abrirEdicao(p)"> <i class="fas fa-edit"></i></button>
           </td>
@@ -66,21 +68,8 @@
         </div>
 
         <div class="form-group">
-          <label>Matriz</label>
-          <select class="input" [(ngModel)]="form.matriz_id" name="matriz_id">
-            <option *ngFor="let m of matrizes" [value]="m.id">
-              {{ m.nome }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Legislação</label>
-          <select class="input" [(ngModel)]="form.legislacao_id" name="legislacao_id">
-            <option *ngFor="let l of legislacoes" [value]="l.id">
-              {{ l.sigla }} - {{ l.nome }}
-            </option>
-          </select>
+          <label>Enquadramento legal</label>
+          <input class="input" [value]="form.legislacao_sigla + ' · ' + form.contexto_nome" disabled>
         </div>
 
         <div class="btn-area">

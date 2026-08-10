@@ -1,0 +1,94 @@
+<main class="audit-page" aria-labelledby="audit-title">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Governança e rastreabilidade</span>
+      <h1 id="audit-title">Trilha de auditoria</h1>
+      <p>Histórico imutável das alterações realizadas no sistema.</p>
+    </div>
+    <div class="total-card" aria-label="Total de eventos encontrados">
+      <strong>{{ total }}</strong>
+      <span>eventos</span>
+    </div>
+  </header>
+
+  <section class="filter-bar" aria-label="Filtros da auditoria">
+    <label for="entity-filter">Entidade</label>
+    <select id="entity-filter" [(ngModel)]="entityType" (change)="applyFilter()">
+      <option *ngFor="let option of entityOptions" [value]="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+    <button type="button" (click)="load()" [disabled]="loading">
+      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+      Atualizar
+    </button>
+  </section>
+
+  <div *ngIf="error" class="feedback error" role="alert">{{ error }}</div>
+
+  <section class="audit-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      Carregando eventos…
+    </div>
+
+    <div *ngIf="!loading && !entries.length" class="empty-state">
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+      <h2>Nenhum evento encontrado</h2>
+      <p>A trilha será preenchida quando registros forem criados ou alterados.</p>
+    </div>
+
+    <div *ngIf="!loading && entries.length" class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Data e hora</th>
+            <th>Ação</th>
+            <th>Entidade</th>
+            <th>Responsável</th>
+            <th>Detalhes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of entries; trackBy: trackById">
+            <td class="date-cell">{{ formatDate(entry.occurred_at) }}</td>
+            <td><span class="action-badge" [attr.data-action]="entry.action">{{ actionLabel(entry.action) }}</span></td>
+            <td>
+              <strong>{{ entityLabel(entry.entity_type) }}</strong>
+              <small *ngIf="entry.entity_id">ID {{ entry.entity_id }}</small>
+            </td>
+            <td>
+              <span>{{ entry.actor_name || 'Processo do sistema' }}</span>
+              <small *ngIf="entry.actor_email">{{ entry.actor_email }}</small>
+            </td>
+            <td>
+              <details>
+                <summary>Consultar</summary>
+                <div class="change-grid">
+                  <div *ngIf="entry.before_data">
+                    <h3>Antes</h3>
+                    <pre>{{ entry.before_data | json }}</pre>
+                  </div>
+                  <div *ngIf="entry.after_data">
+                    <h3>Depois</h3>
+                    <pre>{{ entry.after_data | json }}</pre>
+                  </div>
+                  <div *ngIf="entry.metadata && (entry.metadata | keyvalue).length">
+                    <h3>Metadados</h3>
+                    <pre>{{ entry.metadata | json }}</pre>
+                  </div>
+                </div>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav *ngIf="totalPages > 1" class="pagination" aria-label="Paginação da auditoria">
+    <button type="button" (click)="load(page - 1)" [disabled]="page <= 1 || loading">Anterior</button>
+    <span>Página {{ page }} de {{ totalPages }}</span>
+    <button type="button" (click)="load(page + 1)" [disabled]="page >= totalPages || loading">Próxima</button>
+  </nav>
+</main>

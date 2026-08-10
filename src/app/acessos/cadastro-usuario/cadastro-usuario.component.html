@@ -1,36 +1,42 @@
-<section class="login-page" aria-labelledby="register-title">
-  <div class="login-wrapper">
-    <div class="logo-block">
-      <div class="logo-icon" aria-hidden="true">
-        <i class="fa-solid fa-flask"></i>
-      </div>
-      <h1 class="logo-title">SYSmLab</h1>
-      <p class="logo-subtitle">
-        Sistema inteligente de monitoramento para laboratórios ambientais
-      </p>
+<main class="users-page" aria-labelledby="users-title">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Administração</span>
+      <h1 id="users-title">Usuários e acessos</h1>
+      <p>Cadastre pessoas e aplique o menor nível de acesso necessário.</p>
     </div>
+    <span class="users-count">{{ users.length }} {{ users.length === 1 ? 'usuário' : 'usuários' }}</span>
+  </header>
 
-    <div class="login-card">
-      <header class="card-header">
-        <h2 id="register-title" class="card-title">Cadastrar usuário</h2>
-        <p class="card-description">Acesso exclusivo para gestores</p>
+  <div *ngIf="feedback" class="feedback" [class.error]="feedbackType === 'error'" role="status">
+    <i
+      class="fa-solid"
+      [class.fa-circle-check]="feedbackType === 'success'"
+      [class.fa-triangle-exclamation]="feedbackType === 'error'"
+      aria-hidden="true"
+    ></i>
+    {{ feedback }}
+  </div>
+
+  <div class="content-grid">
+    <section class="panel create-panel" aria-labelledby="new-user-title">
+      <header class="panel-header">
+        <span class="panel-icon"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="new-user-title">Novo usuário</h2>
+          <p>A senha inicial deve ter pelo menos 8 caracteres.</p>
+        </div>
       </header>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
         <div class="field">
-          <label for="nome">Nome</label>
+          <label for="nome">Nome completo</label>
           <input id="nome" type="text" formControlName="nome" autocomplete="name" />
         </div>
 
         <div class="field">
           <label for="register-email">E-mail</label>
-          <input
-            id="register-email"
-            type="email"
-            formControlName="email"
-            autocomplete="email"
-            inputmode="email"
-          />
+          <input id="register-email" type="email" formControlName="email" autocomplete="off" inputmode="email" />
         </div>
 
         <div class="field">
@@ -39,7 +45,7 @@
             id="telefone"
             type="tel"
             formControlName="telefone"
-            autocomplete="tel"
+            autocomplete="off"
             inputmode="tel"
             (input)="mascaraTelefone($event)"
             placeholder="(99) 99999-9999"
@@ -47,55 +53,79 @@
         </div>
 
         <div class="field">
-          <label for="perfil">Perfil</label>
-          <select id="perfil" formControlName="perfil" required>
-            <option value="" disabled>Selecione um perfil</option>
-            <option value="Gestor">Gestor</option>
-            <option value="Analista">Analista</option>
-            <option value="Usuário">Usuário</option>
+          <label for="perfil">Perfil de acesso</label>
+          <select id="perfil" formControlName="perfil">
+            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
           </select>
+          <small>Usuário consulta; Analista opera; Gestor administra.</small>
         </div>
 
-        <div class="field">
-          <label for="register-password">Senha</label>
-          <input
-            id="register-password"
-            type="password"
-            formControlName="senha"
-            autocomplete="new-password"
-          />
-          <small
-            class="erro"
-            *ngIf="form.get('senha')?.hasError('minlength') && form.get('senha')?.touched"
-          >
-            A senha deve ter no mínimo 8 caracteres.
-          </small>
+        <div class="password-grid">
+          <div class="field">
+            <label for="register-password">Senha inicial</label>
+            <input id="register-password" type="password" formControlName="senha" autocomplete="new-password" />
+          </div>
+
+          <div class="field">
+            <label for="confirm-password">Confirmar senha</label>
+            <input id="confirm-password" type="password" formControlName="confirmarSenha" autocomplete="new-password" />
+          </div>
         </div>
 
-        <div class="field">
-          <label for="confirm-password">Confirmar senha</label>
-          <input
-            id="confirm-password"
-            type="password"
-            formControlName="confirmarSenha"
-            autocomplete="new-password"
-          />
-          <small
-            class="erro"
-            *ngIf="form.hasError('senhaDiferente') && form.get('confirmarSenha')?.touched"
-          >
-            As senhas não conferem.
-          </small>
-        </div>
+        <small class="field-error" *ngIf="form.get('senha')?.hasError('minlength') && form.get('senha')?.touched">
+          A senha deve ter no mínimo 8 caracteres.
+        </small>
+        <small class="field-error" *ngIf="form.hasError('senhaDiferente') && form.get('confirmarSenha')?.touched">
+          As senhas não conferem.
+        </small>
 
-        <button
-          class="submit-button"
-          type="submit"
-          [disabled]="form.invalid || loading"
-        >
-          {{ loading ? 'Cadastrando...' : 'Cadastrar usuário' }}
+        <button class="primary-button" type="submit" [disabled]="form.invalid || loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          {{ loading ? 'Cadastrando…' : 'Cadastrar usuário' }}
         </button>
       </form>
-    </div>
+    </section>
+
+    <section class="panel list-panel" aria-labelledby="existing-users-title">
+      <header class="panel-header">
+        <span class="panel-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="existing-users-title">Acessos existentes</h2>
+          <p>Alterações de perfil ficam registradas na auditoria.</p>
+        </div>
+      </header>
+
+      <div *ngIf="loadingUsers" class="loading-state">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        Carregando usuários…
+      </div>
+
+      <div *ngIf="!loadingUsers && !users.length" class="empty-state">Nenhum usuário encontrado.</div>
+
+      <div *ngIf="!loadingUsers && users.length" class="user-list">
+        <article *ngFor="let user of users" class="user-row">
+          <div class="avatar" aria-hidden="true">{{ user.nome.charAt(0).toUpperCase() }}</div>
+          <div class="user-info">
+            <strong>{{ user.nome }}</strong>
+            <span>{{ user.email }}</span>
+            <small>Cadastrado em {{ formatDate(user.created_at) }}</small>
+          </div>
+          <div class="role-control">
+            <label [for]="'role-' + user.id">Perfil</label>
+            <select [id]="'role-' + user.id" [(ngModel)]="selectedRoles[user.id]" [ngModelOptions]="{ standalone: true }">
+              <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            class="save-button"
+            (click)="updateRole(user)"
+            [disabled]="selectedRoles[user.id] === user.perfil || updatingUserId !== ''"
+          >
+            {{ updatingUserId === user.id ? 'Salvando…' : 'Salvar' }}
+          </button>
+        </article>
+      </div>
+    </section>
   </div>
-</section>
+</main>

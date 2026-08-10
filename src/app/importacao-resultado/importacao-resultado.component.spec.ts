@@ -1,14 +1,31 @@
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { NEVER, of, throwError } from 'rxjs';
+import { ImportacaoResposta } from './importacao-resultado.model';
 import { ImportacaoResultadoComponent } from './importacao-resultado.component';
 import { ImportacaoResultadoService } from './importacao-resultado.service';
-import { of, throwError } from 'rxjs';
 
 describe('ImportacaoResultadoComponent', () => {
   let component: ImportacaoResultadoComponent;
   let fixture: ComponentFixture<ImportacaoResultadoComponent>;
   let service: ImportacaoResultadoService;
-  let httpMock: HttpTestingController;
+
+  const criarResposta = (success = true): ImportacaoResposta => ({
+    success,
+    message: success ? 'Importação concluída' : 'Nenhum registro foi inserido',
+    resumo: {
+      total_linhas: 10,
+      validadas_com_sucesso: success ? 10 : 0,
+      inseridas_no_banco: success ? 10 : 0,
+      erros_validacao: success ? 0 : 10,
+      erros_insercao: 0,
+      total_erros: success ? 0 : 10
+    },
+    erros: success ? undefined : [
+      { linha: 2, erro: 'Campo obrigatório ausente', dados: {} }
+    ]
+  });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -19,118 +36,80 @@ describe('ImportacaoResultadoComponent', () => {
     fixture = TestBed.createComponent(ImportacaoResultadoComponent);
     component = fixture.componentInstance;
     service = TestBed.inject(ImportacaoResultadoService);
-    httpMock = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
   });
 
-  afterEach(() => {
-    httpMock.verify();
-  });
-
-  // =================================================================
-  // TESTES DE INICIALIZAÇÃO
-  // =================================================================
-
-  it('deve criar o componente', () => {
+  it('deve criar o componente com estado inicial limpo', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('deve inicializar com tipo "planilha" selecionado', () => {
-    expect(component.tipoSelecionado).toBe('planilha');
-  });
-
-  it('deve inicializar sem arquivo selecionado', () => {
     expect(component.arquivoSelecionado).toBeNull();
     expect(component.nomeArquivo).toBe('');
-  });
-
-  it('deve inicializar sem erros', () => {
     expect(component.erro).toBeNull();
-    expect(component.sucesso).toBeFalse();
+    expect(component.resultado).toBeNull();
     expect(component.loading).toBeFalse();
   });
 
-  // =================================================================
-  // TESTES DE SELEÇÃO DE TIPO
-  // =================================================================
+  it('deve expor somente a importação CSV/XLSX, sem opção de PDF', () => {
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const input = fixture.nativeElement.querySelector('#file-input') as HTMLInputElement;
 
-  describe('selecionarTipo()', () => {
-    it('deve mudar para tipo "planilha"', () => {
-      component.selecionarTipo('planilha');
-      expect(component.tipoSelecionado).toBe('planilha');
-    });
-
-    it('deve mudar para tipo "pdf"', () => {
-      component.selecionarTipo('pdf');
-      expect(component.tipoSelecionado).toBe('pdf');
-    });
-
-    it('deve resetar estado ao mudar de tipo', () => {
-      component.arquivoSelecionado = new File(['test'], 'test.csv');
-      component.erro = 'Erro teste';
-      component.selecionarTipo('pdf');
-
-      expect(component.arquivoSelecionado).toBeNull();
-      expect(component.erro).toBeNull();
-    });
+    expect(texto).not.toContain('PDF');
+    expect(input.accept).toBe('.csv,.xlsx');
   });
 
-  // =================================================================
-  // TESTES DE VALIDAÇÃO DE ARQUIVO
-  // =================================================================
+  it('deve abrir o seletor de arquivos pelo botão acessível', () => {
+    const input = fixture.nativeElement.querySelector('#file-input') as HTMLInputElement;
+    spyOn(input, 'click');
 
-  describe('Validação de arquivo', () => {
-    it('deve aceitar arquivo CSV válido', () => {
-      const file = new File(['test'], 'dados.csv', { type: 'text/csv' });
-      component['processarArquivo'](file);
+    component.selecionarArquivo();
 
-      expect(component.arquivoSelecionado).toBe(file);
-      expect(component.nomeArquivo).toBe('dados.csv');
-      expect(component.erro).toBeNull();
-    });
+    expect(input.click).toHaveBeenCalled();
+  });
 
-    it('deve aceitar arquivo XLSX válido', () => {
-      const file = new File(['test'], 'dados.xlsx', {
+  describe('validação do arquivo', () => {
+    it('deve aceitar CSV e XLSX válidos', () => {
+      const csv = new File(['teste'], 'dados.csv', { type: 'text/csv' });
+      component['processarArquivo'](csv);
+      expect(component.arquivoSelecionado).toBe(csv);
+
+      const xlsx = new File(['teste'], 'dados.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      component['processarArquivo'](file);
-
-      expect(component.arquivoSelecionado).toBe(file);
+      component['processarArquivo'](xlsx);
+      expect(component.arquivoSelecionado).toBe(xlsx);
       expect(component.nomeArquivo).toBe('dados.xlsx');
       expect(component.erro).toBeNull();
     });
 
-    it('deve aceitar arquivo XLS válido', () => {
-      const file = new File(['test'], 'dados.xls', {
-        type: 'application/vnd.ms-excel'
-      });
-      component['processarArquivo'](file);
+    it('deve rejeitar XLS legado e outros formatos', () => {
+      component['processarArquivo'](new File(['teste'], 'dados.xls'));
+      expect(component.arquivoSelecionado).toBeNull();
+      expect(component.erro).toContain('Formato não suportado');
 
-      expect(component.arquivoSelecionado).toBe(file);
-      expect(component.nomeArquivo).toBe('dados.xls');
-      expect(component.erro).toBeNull();
-    });
-
-    it('deve rejeitar arquivo com extensão inválida', () => {
-      const file = new File(['test'], 'dados.txt', { type: 'text/plain' });
-      component['processarArquivo'](file);
-
+      component['processarArquivo'](new File(['teste'], 'dados.pdf'));
       expect(component.arquivoSelecionado).toBeNull();
       expect(component.erro).toContain('Formato não suportado');
     });
 
-    it('deve rejeitar arquivo muito grande (>10MB)', () => {
-      const largeContent = new Array(11 * 1024 * 1024).join('a');
-      const file = new File([largeContent], 'grande.csv', { type: 'text/csv' });
+    it('deve rejeitar arquivo acima de 10 MB', () => {
+      const file = new File(
+        [new ArrayBuffer((10 * 1024 * 1024) + 1)],
+        'grande.csv',
+        { type: 'text/csv' }
+      );
+
       component['processarArquivo'](file);
 
       expect(component.arquivoSelecionado).toBeNull();
-      expect(component.erro).toContain('muito grande');
+      expect(component.erro).toContain('10 MB');
     });
 
-    it('deve aceitar arquivo de exatamente 10MB', () => {
-      const content = new Array(10 * 1024 * 1024).join('a');
-      const file = new File([content], 'limite.csv', { type: 'text/csv' });
+    it('deve aceitar arquivo de exatamente 10 MB', () => {
+      const file = new File(
+        [new ArrayBuffer(10 * 1024 * 1024)],
+        'limite.csv',
+        { type: 'text/csv' }
+      );
+
       component['processarArquivo'](file);
 
       expect(component.arquivoSelecionado).toBe(file);
@@ -138,170 +117,138 @@ describe('ImportacaoResultadoComponent', () => {
     });
   });
 
-  // =================================================================
-  // TESTES DE DRAG AND DROP
-  // =================================================================
-
-  describe('Drag and Drop', () => {
-    it('deve ativar estado dragover ao arrastar arquivo', () => {
+  describe('drag and drop', () => {
+    it('deve controlar o destaque da área de envio', () => {
       const event = new DragEvent('dragover');
       component.onDragOver(event);
-
       expect(component.isDragOver).toBeTrue();
-    });
 
-    it('deve desativar estado dragover ao sair da área', () => {
-      component.isDragOver = true;
-      const event = new DragEvent('dragleave');
       component.onDragLeave(event);
-
       expect(component.isDragOver).toBeFalse();
     });
 
-    it('deve processar arquivo ao soltar na área', () => {
-      const file = new File(['test'], 'drop.csv', { type: 'text/csv' });
+    it('deve processar o primeiro arquivo solto', () => {
+      const file = new File(['teste'], 'drop.csv', { type: 'text/csv' });
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
-
       const event = new DragEvent('drop', { dataTransfer });
-      spyOn(event, 'preventDefault');
 
       component.onDrop(event);
 
-      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.arquivoSelecionado).toBe(file);
       expect(component.isDragOver).toBeFalse();
     });
   });
 
-  // =================================================================
-  // TESTES DE IMPORTAÇÃO
-  // =================================================================
-
   describe('iniciarImportacao()', () => {
-    it('não deve iniciar importação sem arquivo', () => {
-      component.arquivoSelecionado = null;
-      spyOn(service, 'importarPlanilha');
+    it('não deve chamar o serviço sem um arquivo', () => {
+      const importarSpy = spyOn(service, 'importarPlanilha');
 
       component.iniciarImportacao();
 
-      expect(service.importarPlanilha).not.toHaveBeenCalled();
+      expect(importarSpy).not.toHaveBeenCalled();
     });
 
-    it('deve chamar serviço com arquivo correto', () => {
-      const file = new File(['test'], 'teste.csv');
+    it('deve guardar integralmente a resposta de sucesso', () => {
+      const file = new File(['teste'], 'resultados.csv', { type: 'text/csv' });
+      const resposta = criarResposta(true);
       component.arquivoSelecionado = file;
-
-      spyOn(service, 'importarPlanilha').and.returnValue(of({
-        success: true,
-        resumo: { total_linhas: 10, inseridas_no_banco: 10 }
-      }));
+      spyOn(service, 'importarPlanilha').and.returnValue(of(resposta));
 
       component.iniciarImportacao();
 
       expect(service.importarPlanilha).toHaveBeenCalledWith(file);
-    });
-
-    it('deve processar resposta de sucesso', (done) => {
-      const file = new File(['test'], 'teste.csv');
-      component.arquivoSelecionado = file;
-
-      const mockResponse = {
-        success: true,
-        message: 'Importação concluída',
-        resumo: {
-          total_linhas: 100,
-          inseridas_no_banco: 95,
-          erros_validacao: 5,
-          erros_insercao: 0
-        },
-        erros: []
-      };
-
-      spyOn(service, 'importarPlanilha').and.returnValue(of(mockResponse));
-
-      component.iniciarImportacao();
-
-      setTimeout(() => {
-        expect(component.loading).toBeFalse();
-        expect(component.sucesso).toBeTrue();
-        expect(component.resultado).toEqual(mockResponse);
-        expect(component.erro).toBeNull();
-        done();
-      }, 100);
-    });
-
-    it('deve processar erro de importação', (done) => {
-      const file = new File(['test'], 'teste.csv');
-      component.arquivoSelecionado = file;
-
-      const mockError = {
-        error: {
-          message: 'Erro ao processar arquivo',
-          error: 'Arquivo corrompido'
-        }
-      };
-
-      spyOn(service, 'importarPlanilha').and.returnValue(throwError(() => mockError));
-
-      component.iniciarImportacao();
-
-      setTimeout(() => {
-        expect(component.loading).toBeFalse();
-        expect(component.sucesso).toBeFalse();
-        expect(component.erro).toContain('Erro ao processar arquivo');
-        done();
-      }, 100);
-    });
-  });
-
-  // =================================================================
-  // TESTES DE RESET
-  // =================================================================
-
-  describe('resetarEstado()', () => {
-    it('deve limpar todos os estados', () => {
-      component.arquivoSelecionado = new File(['test'], 'test.csv');
-      component.nomeArquivo = 'test.csv';
-      component.erro = 'Erro teste';
-      component.sucesso = true;
-      component.loading = true;
-      component.resultado = { success: true };
-      component.isDragOver = true;
-
-      component.resetarEstado();
-
-      expect(component.arquivoSelecionado).toBeNull();
-      expect(component.nomeArquivo).toBe('');
-      expect(component.erro).toBeNull();
-      expect(component.sucesso).toBeFalse();
+      expect(component.resultado).toEqual(resposta);
       expect(component.loading).toBeFalse();
+      expect(component.erro).toBeNull();
+    });
+
+    it('deve preservar resumo e erros recebidos em HTTP 422', () => {
+      const resposta = criarResposta(false);
+      component.arquivoSelecionado = new File(['teste'], 'invalido.csv');
+      spyOn(service, 'importarPlanilha').and.returnValue(throwError(() =>
+        new HttpErrorResponse({
+          status: 422,
+          statusText: 'Unprocessable Entity',
+          error: resposta
+        })
+      ));
+
+      component.iniciarImportacao();
+
+      expect(component.resultado).toEqual(resposta);
+      expect(component.resultado?.resumo.inseridas_no_banco).toBe(0);
+      expect(component.resultado?.erros?.length).toBe(1);
+      expect(component.erro).toBeNull();
+      expect(component.loading).toBeFalse();
+    });
+
+    it('deve apresentar mensagem de um erro sem resumo', () => {
+      component.arquivoSelecionado = new File(['teste'], 'invalido.csv');
+      spyOn(service, 'importarPlanilha').and.returnValue(throwError(() =>
+        new HttpErrorResponse({
+          status: 400,
+          statusText: 'Bad Request',
+          error: { message: 'Estrutura do arquivo incorreta' }
+        })
+      ));
+
+      component.iniciarImportacao();
+
       expect(component.resultado).toBeNull();
-      expect(component.isDragOver).toBeFalse();
+      expect(component.erro).toBe('Estrutura do arquivo incorreta');
+      expect(component.loading).toBeFalse();
     });
   });
 
-  describe('novaImportacao()', () => {
-    it('deve resetar estado para nova importação', () => {
-      spyOn(component, 'resetarEstado');
-      component.novaImportacao();
-      expect(component.resetarEstado).toHaveBeenCalled();
+  describe('modelos de importação', () => {
+    it('deve solicitar o modelo pelo serviço sem abrir uma URL pública', () => {
+      const baixarSpy = spyOn(service, 'baixarTemplate').and.returnValue(NEVER);
+
+      component.baixarTemplate('xlsx');
+
+      expect(baixarSpy).toHaveBeenCalledWith('xlsx');
+      expect(component.formatoTemplateEmDownload).toBe('xlsx');
+    });
+
+    it('deve informar falha no download do modelo', () => {
+      spyOn(service, 'baixarTemplate').and.returnValue(throwError(() =>
+        new HttpErrorResponse({
+          status: 500,
+          statusText: 'Server Error',
+          error: { message: 'Erro ao gerar template' }
+        })
+      ));
+
+      component.baixarTemplate('csv');
+
+      expect(component.erroTemplate).toBe('Erro ao gerar template');
+      expect(component.formatoTemplateEmDownload).toBeNull();
     });
   });
 
-  // =================================================================
-  // TESTES DE FORMATAÇÃO
-  // =================================================================
+  it('deve limpar o estado para uma nova importação', () => {
+    component.arquivoSelecionado = new File(['teste'], 'resultados.csv');
+    component.nomeArquivo = 'resultados.csv';
+    component.erro = 'Erro';
+    component.erroTemplate = 'Erro no modelo';
+    component.resultado = criarResposta(true);
+    component.loading = true;
+    component.isDragOver = true;
 
-  describe('formatarNumero()', () => {
-    it('deve formatar números com separador de milhares', () => {
-      expect(component.formatarNumero(1000)).toBe('1.000');
-      expect(component.formatarNumero(1000000)).toBe('1.000.000');
-    });
+    component.resetarEstado();
 
-    it('deve formatar números pequenos', () => {
-      expect(component.formatarNumero(0)).toBe('0');
-      expect(component.formatarNumero(10)).toBe('10');
-      expect(component.formatarNumero(999)).toBe('999');
-    });
+    expect(component.arquivoSelecionado).toBeNull();
+    expect(component.nomeArquivo).toBe('');
+    expect(component.erro).toBeNull();
+    expect(component.erroTemplate).toBeNull();
+    expect(component.resultado).toBeNull();
+    expect(component.loading).toBeFalse();
+    expect(component.isDragOver).toBeFalse();
+  });
+
+  it('deve formatar números no padrão brasileiro', () => {
+    expect(component.formatarNumero(1_000)).toBe('1.000');
+    expect(component.formatarNumero(1_500_000)).toBe('1.500.000');
   });
 });

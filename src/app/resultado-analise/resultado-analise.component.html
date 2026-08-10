@@ -1,364 +1,293 @@
 <div class="resultado-container">
-  <div class="header">
-    <h2 class="header-title" style="padding-top: 40px;">Gerenciamento de Resultados</h2>
-  </div>
+  <header class="header page-heading">
+    <div>
+      <p class="eyebrow">Controle laboratorial</p>
+      <h2 class="header-title">Gerenciamento de Resultados</h2>
+      <p class="header-description">Registre o resultado no contexto correto e aplique automaticamente os limites legais.</p>
+    </div>
+  </header>
 
-  <!-- SISTEMA DE ABAS -->
-  <div class="tabs-container">
-    <button
-      class="tab-button"
-      [class.tab-active]="abaAtiva === 'manual'"
-      (click)="abaAtiva = 'manual'">
-      <i class="fa-solid fa-keyboard me-2"></i>
-      Inserir Novo Resultado
+  <div class="tabs-container" role="tablist" aria-label="Tipo de entrada">
+    <button class="tab-button" [class.tab-active]="abaAtiva === 'manual'" (click)="abaAtiva = 'manual'">
+      <i class="fa-solid fa-keyboard me-2"></i>Inserir resultado
     </button>
-    <button
-      class="tab-button"
-      [class.tab-active]="abaAtiva === 'importacao'"
-      (click)="abaAtiva = 'importacao'">
-      <i class="fa-solid fa-file-import me-2"></i>
-      Importar Resultado
+    <button class="tab-button" [class.tab-active]="abaAtiva === 'importacao'" (click)="abaAtiva = 'importacao'">
+      <i class="fa-solid fa-file-import me-2"></i>Importar resultados
     </button>
   </div>
 
-  <!-- CONTEÚDO DA ABA MANUAL -->
   <div *ngIf="abaAtiva === 'manual'" class="tab-content">
     <div class="container">
-
-    <div class="form-section">
-      <h5 class="mb-3">
-        <i class="bi" [class.bi-plus-circle]="!isEditing" [class.bi-pencil-square]="isEditing"></i>
-        {{ isEditing ? 'Editar Resultado' : 'Inserir Novo Resultado' }}
-      </h5>
-
-      <form [formGroup]="resultadoForm" (ngSubmit)="onSubmit()">
-        <div class="row g-3">
-
-          <div class="col-md-3">
-            <label class="form-label">Valor Medido *</label>
-            <input type="number" step="0.0001" class="form-control" formControlName="valor_medido"
-              [class.is-invalid]="resultadoForm.get('valor_medido')?.invalid && resultadoForm.get('valor_medido')?.touched">
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('valor_medido')?.errors?.['required']">
-              Valor medido é obrigatório
-            </div>
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label">Código Amostra *</label>
-            <select class="form-select" formControlName="amostra_id"
-              [class.is-invalid]="resultadoForm.get('amostra_id')?.invalid && resultadoForm.get('amostra_id')?.touched">
-              <option value="" selected disabled>Selecione...</option>
-              <option *ngFor="let amostra of amostras" [value]="amostra.id">
-                {{ amostra.codigo_amostra }}
-              </option>
-            </select>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('amostra_id')?.errors?.['required']">
-              Código da amostra é obrigatório
-            </div>
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label">N° da Amostra (Busca automática)</label>
-            <input type="text" class="form-control bg-light" [value]="numeroAmostraSelecionada" disabled
-              placeholder="Selecione o código">
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label">Parâmetro *</label>
-            <select class="form-select" formControlName="parametro_id"
-              [class.is-invalid]="resultadoForm.get('parametro_id')?.invalid && resultadoForm.get('parametro_id')?.touched">
-              <option value="" selected disabled>Selecione...</option>
-              <option *ngFor="let parametro of parametros" [value]="parametro.id">
-                {{ parametro.nome }}
-              </option>
-            </select>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('parametro_id')?.errors?.['required']">
-              Parâmetro é obrigatório
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-3" style="padding-top: 30px;">
-
-          <div class="col-md-4">
-            <label class="form-label">Data da coleta *</label>
-            <input type="text" class="form-control" formControlName="datacoleta" placeholder="dd/mm/aaaa"
-              (input)="formatarData($event)"
-              [class.is-invalid]="resultadoForm.get('datacoleta')?.invalid && resultadoForm.get('datacoleta')?.touched">
-
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['required']">
-              Data da coleta é obrigatória
-            </div>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['pattern']">
-              Formato inválido. Use dd/mm/aaaa
-            </div>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['dataFutura']">
-              A data não pode ser futura.
-            </div>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label">Matriz *</label>
-            <select class="form-select" formControlName="matriz"
-              [class.is-invalid]="resultadoForm.get('matriz')?.invalid && resultadoForm.get('matriz')?.touched">
-              <option value="" selected disabled>Selecione...</option>
-              <option *ngFor="let matriz of matrizes" [value]="matriz.id">
-                {{ matriz.nome }}
-              </option>
-            </select>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('matriz')?.errors?.['required']">
-              Matriz é obrigatória
-            </div>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label">Legislação *</label>
-            <select class="form-select" formControlName="legislacao"
-              [class.is-invalid]="resultadoForm.get('legislacao')?.invalid && resultadoForm.get('legislacao')?.touched">
-              <option value="" selected disabled>Selecione...</option>
-              <option *ngFor="let legislacao of legislacoes" [value]="legislacao.id">
-                {{ legislacao.nome }} ({{ legislacao.sigla }})
-              </option>
-            </select>
-            <div class="invalid-feedback" *ngIf="resultadoForm.get('legislacao')?.errors?.['required']">
-              Legislação é obrigatória
-            </div>
-          </div>
-
-          <div class="col-12 text-end">
-            <button type="submit" class="btn" [class.btn-success]="!isEditing" [class.btn-primary]="isEditing"
-              [disabled]="loading || resultadoForm.invalid">
-              <i class="bi" [class.bi-check-lg]="!isEditing" [class.bi-save]="isEditing"></i>
-              {{ isEditing ? 'Atualizar' : 'Inserir' }} Resultado
-            </button>
-
-            <button type="button" class="btn btn-outline-secondary ms-2" (click)="resetForm()" [disabled]="loading">
-              Limpar
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-
-    <div class="filter-section">
-      <h5 class="mb-3"><i class="bi bi-funnel"></i> Filtros</h5>
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Código da Amostra</label>
-          <input type="text" class="form-control" [(ngModel)]="filtroCodigoAmostra"
-            [ngModelOptions]="{standalone: true}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Data da coleta</label>
-          <input type="text" class="form-control" [(ngModel)]="filtroDataColeta" [ngModelOptions]="{standalone: true}"
-            placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'coleta')">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Data da Publicação</label>
-          <input type="text" class="form-control" [(ngModel)]="filtroDataPublicacao" [ngModelOptions]="{standalone: true}"
-            placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'publicacao')">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Status de conformidade</label>
-          <select class="form-select" [(ngModel)]="filtroStatus" [ngModelOptions]="{standalone: true}">
-            <option value="">Todos</option>
-            <option value="conforme">Conforme</option>
-            <option value="nao-conforme">Não conforme</option>
-            <option value="critico">Crítico</option>
-            <option value="alerta">Alerta</option>
-          </select>
-        </div>
-        <div class="col-12 text-end">
-          <button class="btn btn-primary" (click)="aplicarFiltros()" [disabled]="loading">
-            <i class="bi bi-funnel"></i> Aplicar Filtros
-          </button>
-          <button class="btn btn-outline-secondary ms-2" (click)="limparFiltros()" [disabled]="loading">
-            Limpar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header bg-white">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5><i class="bi bi-table"></i> Resultados das Análises</h5>
+      <section class="form-section legal-form-card">
+        <div class="section-heading">
           <div>
-            <span class="text-muted me-3" id="mostrandoResultados">
-              Mostrando {{ getRangeInicio() }} - {{ getRangeFim() }} de {{ totalItens }} resultados
-            </span>
-            <button class="btn btn-sm btn-outline-primary" (click)="atualizarTabela()" [disabled]="loading">
-              <i class="bi bi-arrow-clockwise"></i> Atualizar
+            <p class="step-label">Novo registro</p>
+            <h5>{{ isEditing ? 'Editar resultado' : 'Identificação e enquadramento legal' }}</h5>
+          </div>
+          <span class="legal-badge"><i class="fa-solid fa-scale-balanced"></i> Limite automático</span>
+        </div>
+
+        <form [formGroup]="resultadoForm" (ngSubmit)="onSubmit()">
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <label class="form-label" for="amostra">Código da amostra *</label>
+              <select id="amostra" class="form-select" formControlName="amostra_id"
+                [class.is-invalid]="resultadoForm.get('amostra_id')?.invalid && resultadoForm.get('amostra_id')?.touched">
+                <option value="" disabled>Selecione a amostra</option>
+                <option *ngFor="let amostra of amostras" [value]="amostra.id">{{ amostra.codigo_amostra }}</option>
+              </select>
+              <div class="invalid-feedback">Código da amostra é obrigatório.</div>
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Número da amostra</label>
+              <input class="form-control readonly-field" [value]="numeroAmostraSelecionada" disabled placeholder="Preenchido pela amostra">
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Matriz</label>
+              <select class="form-select readonly-field" formControlName="matriz">
+                <option value="">Preenchida pela amostra</option>
+                <option *ngFor="let matriz of matrizes" [value]="matriz.id">{{ matriz.nome }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="legal-flow" [class.flow-ready]="amostraSelecionada">
+            <div class="row g-3">
+              <div class="col-lg-5">
+                <label class="form-label" for="legislacao">Legislação aplicável *</label>
+                <select id="legislacao" class="form-select" formControlName="legislacao"
+                  [class.is-invalid]="resultadoForm.get('legislacao')?.invalid && resultadoForm.get('legislacao')?.touched">
+                  <option value="" disabled>Selecione a legislação</option>
+                  <option *ngFor="let legislacao of legislacoesDisponiveis" [value]="legislacao.id">
+                    {{ legislacao.sigla }}
+                  </option>
+                </select>
+                <small class="field-hint" *ngIf="!amostraSelecionada">Selecione primeiro uma amostra.</small>
+                <div class="invalid-feedback">Legislação é obrigatória.</div>
+              </div>
+
+              <div class="col-lg-7">
+                <label class="form-label" for="contexto">Classe ou contexto de aplicação *</label>
+                <select id="contexto" class="form-select" formControlName="contexto_legislacao_id"
+                  [class.is-invalid]="resultadoForm.get('contexto_legislacao_id')?.invalid && resultadoForm.get('contexto_legislacao_id')?.touched">
+                  <option value="" disabled>Selecione a classe ou o tipo de lançamento</option>
+                  <option *ngFor="let contexto of contextosDisponiveis" [value]="contexto.id">{{ contexto.nome }}</option>
+                </select>
+                <div class="invalid-feedback">O contexto legal é obrigatório.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-lg-6">
+              <label class="form-label" for="parametro">Parâmetro *</label>
+              <select id="parametro" class="form-select" formControlName="parametro_id"
+                [class.is-invalid]="resultadoForm.get('parametro_id')?.invalid && resultadoForm.get('parametro_id')?.touched">
+                <option value="" disabled>{{ loadingParametros ? 'Carregando parâmetros...' : 'Selecione o parâmetro' }}</option>
+                <option *ngFor="let parametro of parametros" [value]="parametro.id">
+                  {{ parametro.categoria }} · {{ parametro.nome }}
+                </option>
+              </select>
+              <small class="field-hint" *ngIf="!resultadoForm.get('contexto_legislacao_id')?.value">Os parâmetros aparecem após a escolha do contexto.</small>
+              <div class="invalid-feedback">Parâmetro é obrigatório.</div>
+            </div>
+
+            <div class="col-lg-3" *ngIf="!resultadoQualitativo">
+              <label class="form-label" for="valor">Valor medido *</label>
+              <div class="input-group">
+                <input id="valor" type="number" step="any" min="0" class="form-control" formControlName="valor_medido"
+                  [class.is-invalid]="resultadoForm.get('valor_medido')?.invalid && resultadoForm.get('valor_medido')?.touched">
+                <span class="input-group-text" *ngIf="parametroSelecionado?.unidade_medida">{{ parametroSelecionado?.unidade_medida }}</span>
+              </div>
+            </div>
+
+            <div class="col-lg-3" *ngIf="resultadoQualitativo">
+              <label class="form-label" for="valorQualitativo">Resultado *</label>
+              <select id="valorQualitativo" class="form-select" formControlName="valor_qualitativo">
+                <option value="" disabled>Selecione</option>
+                <option value="Ausente">Ausente</option>
+                <option value="Presente">Presente</option>
+              </select>
+            </div>
+
+            <div class="col-lg-3">
+              <label class="form-label" for="dataColeta">Data da coleta *</label>
+              <input id="dataColeta" type="text" class="form-control" formControlName="datacoleta" placeholder="dd/mm/aaaa"
+                (input)="formatarData($event)"
+                [class.is-invalid]="resultadoForm.get('datacoleta')?.invalid && resultadoForm.get('datacoleta')?.touched">
+              <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['required']">Data da coleta é obrigatória.</div>
+              <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['pattern'] || resultadoForm.get('datacoleta')?.errors?.['dataInvalida']">Use uma data válida no formato dd/mm/aaaa.</div>
+              <div class="invalid-feedback" *ngIf="resultadoForm.get('datacoleta')?.errors?.['dataFutura']">A data não pode ser futura.</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-lg-8">
+              <label class="form-label" for="metodoAnalitico">Método analítico</label>
+              <select
+                id="metodoAnalitico"
+                class="form-select"
+                formControlName="metodo_analitico_id"
+                [class.is-invalid]="resultadoForm.get('metodo_analitico_id')?.invalid && resultadoForm.get('metodo_analitico_id')?.touched"
+              >
+                <option value="" disabled>
+                  {{ loadingMetodos ? 'Carregando métodos...' : 'Selecione o método utilizado' }}
+                </option>
+                <option *ngFor="let metodo of metodos" [value]="metodo.id">
+                  {{ metodo.codigo }} · {{ metodo.nome }} · versão {{ metodo.versao }}
+                </option>
+              </select>
+              <small class="field-hint" *ngIf="resultadoForm.get('parametro_id')?.value && !loadingMetodos && !metodos.length">
+                Nenhum método ativo se aplica a este parâmetro e matriz. Cadastre-o em Qualidade → Métodos.
+              </small>
+              <small class="field-hint" *ngIf="metodos.length">A seleção pode ser feita no rascunho, mas é obrigatória antes de enviar para revisão.</small>
+            </div>
+          </div>
+
+          <aside class="limit-card" *ngIf="parametroSelecionado">
+            <div class="limit-icon"><i class="fa-solid fa-gavel"></i></div>
+            <div class="limit-copy">
+              <span>Limite aplicado</span>
+              <strong>{{ formatarLimite() }}</strong>
+              <p *ngIf="parametroSelecionado.criterio_texto">{{ parametroSelecionado.criterio_texto }}</p>
+              <small>{{ parametroSelecionado.contexto_nome }} · {{ parametroSelecionado.fonte_referencia }}</small>
+            </div>
+          </aside>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="loading">Limpar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading || resultadoForm.invalid">
+              <span *ngIf="!loading"><i class="fa-solid fa-check me-2"></i>{{ isEditing ? 'Atualizar' : 'Salvar' }} resultado</span>
+              <span *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span>Salvando...</span>
             </button>
           </div>
-        </div>
-      </div>
+        </form>
+      </section>
 
-      <div class="card-body px-4 pb-0">
+      <section class="filter-section">
+        <h5><i class="bi bi-funnel me-2"></i>Filtros</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Código da amostra</label>
+            <input class="form-control" [(ngModel)]="filtroCodigoAmostra" [ngModelOptions]="{standalone: true}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Data da coleta</label>
+            <input class="form-control" [(ngModel)]="filtroDataColeta" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'coleta')">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Data da publicação</label>
+            <input class="form-control" [(ngModel)]="filtroDataPublicacao" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'publicacao')">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Conformidade</label>
+            <select class="form-select" [(ngModel)]="filtroStatus" [ngModelOptions]="{standalone: true}">
+              <option value="">Todos</option>
+              <option value="conforme">Conforme</option>
+              <option value="nao-conforme">Não conforme</option>
+              <option value="informativo">Informativo</option>
+            </select>
+          </div>
+          <div class="col-12 text-end">
+            <button class="btn btn-outline-secondary me-2" (click)="limparFiltros()">Limpar</button>
+            <button class="btn btn-primary" (click)="aplicarFiltros()"><i class="bi bi-funnel me-1"></i>Aplicar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card results-card">
+        <div class="card-header bg-white results-heading">
+          <div>
+            <p class="step-label">Histórico</p>
+            <h5>Resultados das análises</h5>
+          </div>
+          <div class="results-actions">
+            <span class="text-muted">{{ getRangeInicio() }}–{{ getRangeFim() }} de {{ totalItens }}</span>
+            <button class="btn btn-sm btn-outline-primary" (click)="atualizarTabela()" [disabled]="loading"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+          </div>
+        </div>
+
         <div class="table-responsive">
           <table class="table table-hover table-custom mb-0">
             <thead>
               <tr>
-                <th>Número da Amostra</th>
-                <th style="padding-left: 15px;">Código da Amostra</th>
-                <th style="padding-left: 15px;">Parâmetro</th>
-                <th>Valor Medido</th>
-                <th>Status de Conformidade</th>
-                <th>Ações</th>
+                <th>Amostra</th>
+                <th>Parâmetro</th>
+                <th>Resultado</th>
+                <th>Contexto legal</th>
+                <th>Fluxo</th>
+                <th>Conformidade</th>
+                <th class="text-end">Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let resultado of resultadosPaginados; trackBy: trackByResultado">
-                <td>{{ getAmostraNumero(resultado.amostra_id) }}</td>
-                <td>
-                  <span class="badge sample-badge">
-                    {{ getAmostraCodigo(resultado.amostra_id) }}
-                  </span>
-                </td>
-                <td>
-                  <span class="badge parameter-badge">
-                    {{ getParametroNome(resultado.parametro_id) }}
-                  </span>
-                </td>
-                <td><strong>{{ resultado.valor_medido | number:'1.2-2' }}</strong></td>
-                <td>
-                  <span [class]="'status-' + getStatusConformidade(resultado)">
-                    {{ getStatusText(getStatusConformidade(resultado)) }}
-                  </span>
-                </td>
-                <td>
-                  <button class="btn btn-sm btn-outline-primary action-btn" (click)="visualizarResultado(resultado)"
-                    title="Visualizar Detalhes">
-                    <i class="fas fa-eye"></i>
-                  </button>
-
-                  <button class="btn btn-sm btn-outline-secondary action-btn" (click)="editResultado(resultado)"
-                    title="Editar" [disabled]="loading">
-                    <i class="fas fa-edit"></i>
-                  </button>
-
-                  <button class="btn btn-sm btn-outline-danger action-btn" (click)="deleteResultado(resultado.id!)"
-                    title="Excluir" [disabled]="loading">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                <td><strong>{{ getAmostraNumero(resultado.amostra_id) }}</strong><small>{{ getAmostraCodigo(resultado.amostra_id) }}</small></td>
+                <td>{{ getParametroNome(resultado) }}<small>{{ resultado.metodo_codigo ? resultado.metodo_codigo + ' · v' + resultado.metodo_versao : 'Método não informado' }}</small></td>
+                <td><strong>{{ getValorResultado(resultado) }}</strong></td>
+                <td><span class="context-pill">{{ resultado.contexto_nome }}</span></td>
+                <td><span class="context-pill">{{ getWorkflowStatus(resultado.status_resultado) }}</span></td>
+                <td><span [class]="'status-' + getStatusConformidade(resultado)">{{ getStatusText(getStatusConformidade(resultado)) }}</span></td>
+                <td class="text-end actions-cell">
+                  <button class="btn btn-sm btn-outline-primary" (click)="visualizarResultado(resultado)" title="Ver detalhes"><i class="fas fa-eye"></i></button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="editResultado(resultado)" [title]="canEditResultado(resultado) ? 'Editar' : 'Resultado bloqueado pelo workflow'" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteResultado(resultado.id!)" [title]="canEditResultado(resultado) ? 'Arquivar' : 'Resultado retido pelo workflow'" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-box-archive"></i></button>
                 </td>
               </tr>
-              <tr *ngIf="resultadosPaginados.length === 0 && !loading">
-                <td colspan="6" class="text-center py-4">
-                  Nenhum resultado encontrado
-                </td>
-              </tr>
+              <tr *ngIf="resultadosPaginados.length === 0 && !loading"><td colspan="7" class="empty-state">Nenhum resultado encontrado.</td></tr>
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div class="card-footer bg-white" *ngIf="resultadosPaginados.length > 0">
-        <nav aria-label="Navegação de páginas">
-          <ul class="pagination justify-content-center mb-0">
-            <li class="page-item" [class.disabled]="paginaAtual === 1">
-              <button class="page-link" (click)="anterior()" [disabled]="paginaAtual === 1">Anterior</button>
-            </li>
-            <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaAtual">
-              <button class="page-link" (click)="mudarPagina(pagina)">{{ pagina }}</button>
-            </li>
-            <li class="page-item" [class.disabled]="paginaAtual === totalPaginas">
-              <button class="page-link" (click)="proxima()" [disabled]="paginaAtual === totalPaginas">Próxima</button>
-            </li>
-          </ul>
-        </nav>
-        <div class="text-center mt-2">
-          <small class="text-muted">Página {{ paginaAtual }} de {{ totalPaginas }}</small>
+        <div class="card-footer bg-white" *ngIf="resultadosPaginados.length > 0">
+          <nav aria-label="Navegação de páginas">
+            <ul class="pagination justify-content-center mb-0">
+              <li class="page-item" [class.disabled]="paginaAtual === 1"><button class="page-link" (click)="anterior()" [disabled]="paginaAtual === 1">Anterior</button></li>
+              <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaAtual"><button class="page-link" (click)="mudarPagina(pagina)">{{ pagina }}</button></li>
+              <li class="page-item" [class.disabled]="paginaAtual === totalPaginas"><button class="page-link" (click)="proxima()" [disabled]="paginaAtual === totalPaginas">Próxima</button></li>
+            </ul>
+          </nav>
         </div>
-      </div>
-    </div>
-
-    <div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);"
-      *ngIf="resultadoParaVisualizacao">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-
-          <div class="modal-header bg-light">
-            <h5 class="modal-title">
-              <i class="bi bi-file-earmark-text me-2"></i>
-              Detalhes da Análise
-            </h5>
-            <button type="button" class="btn-close" (click)="fecharVisualizacao()"></button>
-          </div>
-
-          <div class="modal-body">
-            <div class="row g-3">
-
-              <div class="col-12 text-center mb-3">
-                <h4 class="text-primary mb-0">{{ resultadoParaVisualizacao.amostra_codigo }}</h4>
-                <div class="text-muted small">ID do Resultado: {{ resultadoParaVisualizacao.id }}</div>
-              </div>
-
-              <div class="col-md-6">
-                <label class="fw-bold text-secondary">Data da Coleta:</label>
-                <p class="fs-5">{{ resultadoParaVisualizacao.datacoleta | date:'dd/MM/yyyy':'UTC' }}</p>
-              </div>
-
-              <div class="col-md-6">
-                <label class="fw-bold text-secondary">Data de Publicação:</label>
-                <p class="fs-5">{{ resultadoParaVisualizacao.datadapublicacao ?
-                  (resultadoParaVisualizacao.datadapublicacao | date:'dd/MM/yyyy HH:mm') : 'Não publicado' }}</p>
-              </div>
-
-              <div class="col-md-6">
-                <label class="fw-bold text-secondary">Valor Medido:</label>
-                <p class="fs-5 fw-bold">{{ resultadoParaVisualizacao.valor_medido | number:'1.2-2' }} <small
-                    class="fw-normal text-muted">{{ resultadoParaVisualizacao.unidade_medida }}</small></p>
-              </div>
-
-              <div class="col-12">
-                <hr class="my-1">
-              </div>
-
-              <div class="col-12">
-                <label class="fw-bold text-secondary">Matriz:</label>
-                <p class="mb-0">
-                  <span class="badge bg-info text-dark" style="font-size: 0.9rem;">
-                    {{ resultadoParaVisualizacao.matriz || resultadoParaVisualizacao.matriz_nome }}
-                  </span>
-                </p>
-              </div>
-
-              <div class="col-12">
-                <label class="fw-bold text-secondary">Legislação:</label>
-                <div class="alert alert-light border mb-0">
-                  {{ resultadoParaVisualizacao.legislacao ||
-                  (resultadoParaVisualizacao.legislacao_nome ? (resultadoParaVisualizacao.legislacao_nome + ' (' +
-                  resultadoParaVisualizacao.legislacao_sigla + ')') : '')
-                  }}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="fecharVisualizacao()">Fechar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div *ngIf="loading" class="text-center py-4">
-      <div class="spinner-border" role="status">
-        <span class="sr-only"></span>
-      </div>
+      </section>
     </div>
   </div>
-  </div>
 
-  <!-- CONTEÚDO DA ABA IMPORTAÇÃO -->
   <div *ngIf="abaAtiva === 'importacao'" class="tab-content">
-    @defer (when abaAtiva === 'importacao') {
-      <app-importacao-resultado></app-importacao-resultado>
-    } @placeholder {
-      <div class="text-center py-5 text-muted">Preparando importação...</div>
-    }
+    @defer (when abaAtiva === 'importacao') { <app-importacao-resultado></app-importacao-resultado> }
+    @placeholder { <div class="text-center py-5 text-muted">Preparando importação...</div> }
   </div>
 
+  <div class="modal fade show details-modal" tabindex="-1" *ngIf="resultadoParaVisualizacao" (click)="fecharVisualizacao()">
+    <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div><p class="step-label">Resultado {{ resultadoParaVisualizacao.id }}</p><h5 class="modal-title">{{ resultadoParaVisualizacao.parametro_nome }}</h5></div>
+          <button type="button" class="btn-close" (click)="fecharVisualizacao()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-value">{{ getValorResultado(resultadoParaVisualizacao) }}</div>
+          <div class="detail-grid">
+            <div><span>Amostra</span><strong>{{ resultadoParaVisualizacao.numerodaamostra }}</strong></div>
+            <div><span>Coleta</span><strong>{{ resultadoParaVisualizacao.datacoleta | date:'dd/MM/yyyy':'UTC' }}</strong></div>
+            <div><span>Matriz</span><strong>{{ resultadoParaVisualizacao.matriz }}</strong></div>
+            <div><span>Status</span><strong>{{ getStatusText(getStatusConformidade(resultadoParaVisualizacao)) }}</strong></div>
+            <div><span>Workflow</span><strong>{{ getWorkflowStatus(resultadoParaVisualizacao.status_resultado) }}</strong></div>
+            <div><span>Método</span><strong>{{ resultadoParaVisualizacao.metodo_nome || 'Não informado' }} {{ resultadoParaVisualizacao.metodo_versao ? '· v' + resultadoParaVisualizacao.metodo_versao : '' }}</strong></div>
+          </div>
+          <div class="legal-detail">
+            <span>Enquadramento</span>
+            <strong>{{ resultadoParaVisualizacao.contexto_nome }}</strong>
+            <p>{{ resultadoParaVisualizacao.legislacao }}</p>
+            <p><b>Limite aplicado:</b> {{ resultadoParaVisualizacao.criterio_legal || ((resultadoParaVisualizacao.limite_minimo ?? '—') + ' a ' + (resultadoParaVisualizacao.limite_maximo ?? '—')) }}</p>
+            <small>{{ resultadoParaVisualizacao.fonte_legal }}</small>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" (click)="fecharVisualizacao()">Fechar</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-overlay"><div class="spinner-border text-primary" role="status"></div></div>
 </div>

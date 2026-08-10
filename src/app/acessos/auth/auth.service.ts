@@ -1,7 +1,21 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { Session } from '@supabase/supabase-js';
+import { API_CONFIG } from '../../../config/api.config';
 import { getSupabaseClient } from './supabase.client';
+
+export type UserRole = 'Gestor' | 'Analista' | 'Usuário';
+
+export interface ManagedUser {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  perfil: UserRole;
+  created_at: string;
+  updated_at: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,7 +30,7 @@ export class AuthService {
   readonly isLoggedIn$ = this.authState.asObservable();
   readonly ready$ = this.readyState.asObservable();
 
-  constructor() {
+  constructor(private readonly http: HttpClient) {
     this.supabase.auth.onAuthStateChange((_event, session) => {
       this.setSession(session);
       this.readyState.next(true);
@@ -89,18 +103,39 @@ export class AuthService {
     return result;
   }
 
-  register(
+  async register(
     email: string,
     password: string,
-    perfil: string,
     nome: string,
-    telefone: string
+    telefone: string,
+    perfil: UserRole = 'Usuário'
   ) {
-    return this.supabase.auth.signUp({
+    return firstValueFrom(this.http.post<{
+      success: boolean;
+      data?: { id: string; email: string; perfil: string };
+      error?: string;
+    }>(`${API_CONFIG.baseUrl}/usuarios`, {
       email,
-      password,
-      options: { data: { perfil, nome, telefone } },
-    });
+      senha: password,
+      nome,
+      telefone,
+      perfil,
+    }));
+  }
+
+  async listUsers(): Promise<ManagedUser[]> {
+    const response = await firstValueFrom(this.http.get<{
+      success: boolean;
+      data: ManagedUser[];
+    }>(`${API_CONFIG.baseUrl}/usuarios`));
+    return response.data;
+  }
+
+  async updateUserRole(userId: string, perfil: UserRole): Promise<void> {
+    await firstValueFrom(this.http.put(
+      `${API_CONFIG.baseUrl}/usuarios/${userId}/perfil`,
+      { perfil }
+    ));
   }
 
   async logout(): Promise<void> {

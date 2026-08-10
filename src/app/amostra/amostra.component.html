@@ -66,10 +66,13 @@
                   <button type="button" class="action-btn text-primary" (click)="visualizarAmostra(amostra.id!)" title="Ver">
                     <i class="fas fa-eye"></i>
                   </button>
+                  <a class="action-btn text-secondary" [routerLink]="['/amostras', amostra.id, 'etiqueta']" title="Imprimir etiqueta">
+                    <i class="fas fa-qrcode"></i>
+                  </a>
                   <button type="button" class="action-btn text-success" (click)="edit(amostra)" title="Editar">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button type="button" class="action-btn text-danger" (click)="delete(amostra.id!)" title="Excluir">
+                  <button type="button" class="action-btn text-danger" (click)="delete(amostra.id!)" title="Arquivar">
                     <i class="fas fa-trash-alt"></i>
                   </button>
                 </div>

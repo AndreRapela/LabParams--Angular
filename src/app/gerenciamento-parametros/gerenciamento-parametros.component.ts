@@ -47,7 +47,7 @@ export class GerenciamentoParametrosComponent implements OnInit {
 
   salvar(): void {
     this.gerenciamentoParametroService
-      .updateParametro(this.form.id, this.form)
+      .updateParametro(this.form.id, { valor_parametro: this.form.valor_parametro })
       .subscribe(() => {
         this.editando = false;
         this.carregarTudo();

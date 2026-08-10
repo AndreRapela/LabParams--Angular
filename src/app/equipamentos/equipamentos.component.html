@@ -1,0 +1,645 @@
+<main class="module-page" aria-labelledby="equipment-title">
+  <header class="page-heading">
+    <div>
+      <span class="eyebrow">Metrologia e disponibilidade</span>
+      <h1 id="equipment-title">Equipamentos</h1>
+      <p>
+        Bloqueio automático por calibração, intervenções e histórico técnico
+        completo.
+      </p>
+    </div>
+    <div class="metric-strip" aria-label="Resumo dos equipamentos">
+      <div class="metric">
+        <strong>{{ total }}</strong
+        ><span>equipamentos</span>
+      </div>
+      <div class="metric">
+        <strong>{{ blockedCount }}</strong
+        ><span>bloqueados na página</span>
+      </div>
+      <div class="metric">
+        <strong>{{ calibrationAlerts }}</strong
+        ><span>alertas na página</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="Filtros de equipamentos">
+    <input
+      class="search-field"
+      type="search"
+      [(ngModel)]="search"
+      (keyup.enter)="load(1)"
+      placeholder="Código, nome ou número de série"
+      aria-label="Buscar equipamento"
+    />
+    <label class="checkbox-field"
+      ><input type="checkbox" [(ngModel)]="blockedOnly" (change)="load(1)" />
+      Somente indisponíveis</label
+    >
+    <button
+      class="button secondary"
+      type="button"
+      (click)="load(1)"
+      [disabled]="loading"
+    >
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Buscar
+    </button>
+    <button
+      *ngIf="canOperate"
+      class="button"
+      type="button"
+      aria-controls="new-equipment-panel"
+      [attr.aria-expanded]="showCreate"
+      (click)="showCreate = !showCreate"
+    >
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo equipamento
+    </button>
+  </section>
+
+  <section
+    *ngIf="showCreate"
+    id="new-equipment-panel"
+    class="panel"
+    aria-labelledby="new-equipment-title"
+  >
+    <div class="card-heading">
+      <h2 id="new-equipment-title">Cadastrar equipamento</h2>
+      <button
+        class="button secondary small"
+        type="button"
+        (click)="showCreate = false"
+      >
+        Fechar
+      </button>
+    </div>
+    <form
+      #equipmentForm="ngForm"
+      class="form-grid"
+      (ngSubmit)="saveEquipment()"
+    >
+      <label
+        >Código<input
+          name="codigo"
+          [(ngModel)]="newEquipment.codigo"
+          required
+          maxlength="80"
+      /></label>
+      <label class="span-2"
+        >Nome<input
+          name="nome"
+          [(ngModel)]="newEquipment.nome"
+          required
+          maxlength="200"
+      /></label>
+      <label
+        >Criticidade<select
+          name="criticidade"
+          [(ngModel)]="newEquipment.criticidade"
+        >
+          <option value="BAIXA">Baixa</option>
+          <option value="MEDIA">Média</option>
+          <option value="ALTA">Alta</option>
+        </select></label
+      >
+      <label
+        >Fabricante<input
+          name="fabricante"
+          [(ngModel)]="newEquipment.fabricante"
+      /></label>
+      <label
+        >Modelo<input name="modelo" [(ngModel)]="newEquipment.modelo"
+      /></label>
+      <label
+        >Número de série<input
+          name="serie"
+          [(ngModel)]="newEquipment.numero_serie"
+      /></label>
+      <label
+        >Localização<input
+          name="localizacao"
+          [(ngModel)]="newEquipment.localizacao"
+      /></label>
+      <label class="checkbox-field"
+        ><input
+          name="requerCalibracao"
+          type="checkbox"
+          [(ngModel)]="newEquipment.requer_calibracao"
+        />
+        Exige calibração</label
+      >
+      <label *ngIf="newEquipment.requer_calibracao"
+        >Periodicidade (dias)<input
+          name="frequencia"
+          type="number"
+          min="1"
+          [(ngModel)]="newEquipment.frequencia_calibracao_dias"
+          required
+      /></label>
+      <label *ngIf="newEquipment.requer_calibracao"
+        >Última calibração<input
+          name="ultima"
+          type="date"
+          [(ngModel)]="newEquipment.ultima_calibracao"
+      /></label>
+      <label *ngIf="newEquipment.requer_calibracao"
+        >Próxima calibração<input
+          name="proxima"
+          type="date"
+          [(ngModel)]="newEquipment.proxima_calibracao"
+      /></label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="equipmentForm.invalid || saving"
+        >
+          {{ saving ? "Salvando…" : "Cadastrar equipamento" }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="data-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading && !selected" class="loading-state" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Carregando
+      equipamentos…
+    </div>
+    <div *ngIf="!loading && !equipment.length" class="empty-state">
+      <i class="fa-solid fa-microscope" aria-hidden="true"></i>
+      <h2>Nenhum equipamento encontrado</h2>
+      <p>Altere os filtros ou cadastre o primeiro equipamento.</p>
+    </div>
+    <div *ngIf="equipment.length" class="table-scroll">
+      <table>
+        <caption class="visually-hidden">
+          Equipamentos encontrados
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Equipamento</th>
+            <th scope="col">Local</th>
+            <th scope="col">Criticidade</th>
+            <th scope="col">Próxima calibração</th>
+            <th scope="col">Disponibilidade</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let item of equipment; trackBy: trackById"
+            [class.selected]="selected?.id === item.id"
+          >
+            <td>
+              <strong>{{ item.nome }}</strong
+              ><small
+                >{{ item.codigo }} ·
+                {{ item.fabricante || "Fabricante não informado" }}
+                {{ item.modelo || "" }}</small
+              >
+            </td>
+            <td>{{ item.localizacao || "Não informada" }}</td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="
+                  item.criticidade === 'ALTA'
+                    ? 'danger'
+                    : item.criticidade === 'MEDIA'
+                      ? 'warning'
+                      : 'neutral'
+                "
+                >{{ item.criticidade }}</span
+              >
+            </td>
+            <td>
+              <strong>{{
+                item.requer_calibracao
+                  ? date(item.proxima_calibracao)
+                  : "Não aplicável"
+              }}</strong
+              ><small
+                *ngIf="
+                  item.dias_para_calibracao !== null &&
+                  item.dias_para_calibracao !== undefined
+                "
+                >{{ item.dias_para_calibracao }} dia(s)</small
+              >
+            </td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="
+                  item.status_operacional === 'DISPONIVEL'
+                    ? 'success'
+                    : 'danger'
+                "
+                >{{ statusLabel(item.status_operacional) }}</span
+              >
+            </td>
+            <td>
+              <button
+                class="button secondary small"
+                type="button"
+                (click)="select(item)"
+                [attr.aria-label]="'Abrir ficha do equipamento ' + item.nome"
+              >
+                Abrir
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav
+    *ngIf="totalPages > 1"
+    class="pagination"
+    aria-label="Paginação de equipamentos"
+  >
+    <button
+      class="button secondary small"
+      type="button"
+      (click)="load(page - 1)"
+      [disabled]="page <= 1 || loading"
+    >
+      Anterior</button
+    ><span>Página {{ page }} de {{ totalPages }}</span
+    ><button
+      class="button secondary small"
+      type="button"
+      (click)="load(page + 1)"
+      [disabled]="page >= totalPages || loading"
+    >
+      Próxima
+    </button>
+  </nav>
+
+  <section
+    *ngIf="selected"
+    class="drawer"
+    aria-labelledby="equipment-detail-title"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="eyebrow">Ficha técnica</span>
+        <h2 id="equipment-detail-title">{{ selected.nome }}</h2>
+        <p>
+          {{ selected.codigo }} · Série
+          {{ selected.numero_serie || "não informada" }}
+        </p>
+      </div>
+      <div class="inline-actions">
+        <button
+          *ngIf="canOperate"
+          class="button small"
+          type="button"
+          aria-controls="equipment-event-form"
+          [attr.aria-expanded]="showEventForm"
+          [disabled]="detailLoading"
+          (click)="showEventForm = !showEventForm"
+        >
+          <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i> Nova
+          intervenção
+        </button>
+        <button
+          *ngIf="isManager"
+          class="button secondary small"
+          type="button"
+          aria-controls="equipment-status-form"
+          [attr.aria-expanded]="showStatusForm"
+          [disabled]="detailLoading"
+          (click)="showStatusForm = !showStatusForm"
+        >
+          Alterar status
+        </button>
+        <button
+          *ngIf="isManager"
+          class="button secondary small"
+          type="button"
+          aria-controls="equipment-calibration-form"
+          [attr.aria-expanded]="showCalibrationForm"
+          [disabled]="detailLoading"
+          (click)="showCalibrationForm = !showCalibrationForm"
+        >
+          Política de calibração
+        </button>
+        <button
+          class="button secondary small"
+          type="button"
+          (click)="closeDetail()"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+    <div *ngIf="detailLoading" class="loading-inline" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Atualizando
+      ficha técnica…
+    </div>
+    <div *ngIf="selected.status_operacional !== 'DISPONIVEL'" class="alert-box">
+      <strong>Equipamento indisponível:</strong>
+      {{
+        selected.motivo_indisponibilidade ||
+          statusLabel(selected.status_operacional)
+      }}
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span>Status administrativo</span
+        ><strong>{{ statusLabel(selected.status) }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Última calibração</span
+        ><strong>{{ date(selected.ultima_calibracao) }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Próxima calibração</span
+        ><strong>{{
+          selected.requer_calibracao
+            ? date(selected.proxima_calibracao)
+            : "Não exigida"
+        }}</strong>
+      </div>
+    </div>
+
+    <form
+      *ngIf="showEventForm"
+      id="equipment-event-form"
+      #eventForm="ngForm"
+      class="panel form-grid"
+      aria-label="Registrar intervenção no equipamento"
+      (ngSubmit)="saveEvent()"
+    >
+      <label
+        >Tipo<select name="eventType" [(ngModel)]="newEvent.tipo">
+          <option value="CALIBRACAO">Calibração</option>
+          <option value="MANUTENCAO_PREVENTIVA">Manutenção preventiva</option>
+          <option value="MANUTENCAO_CORRETIVA">Manutenção corretiva</option>
+        </select></label
+      >
+      <label
+        >Situação inicial<select
+          name="eventStatus"
+          [(ngModel)]="newEvent.status"
+        >
+          <option value="AGENDADO">Agendada</option>
+          <option value="EM_ANDAMENTO">Iniciar agora</option>
+        </select></label
+      >
+      <label
+        >Data agendada<input
+          name="scheduled"
+          type="datetime-local"
+          [(ngModel)]="newEvent.agendado_para"
+      /></label>
+      <label
+        >Fornecedor<input
+          name="eventSupplier"
+          [(ngModel)]="newEvent.fornecedor"
+      /></label>
+      <label class="span-all"
+        >Descrição<textarea
+          name="eventDescription"
+          [(ngModel)]="newEvent.descricao"
+          minlength="3"
+          maxlength="1000"
+          required
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="eventForm.invalid || saving"
+        >
+          Registrar intervenção
+        </button>
+      </div>
+    </form>
+
+    <form
+      *ngIf="showStatusForm"
+      id="equipment-status-form"
+      #statusChangeForm="ngForm"
+      class="panel form-grid"
+      aria-label="Alterar status administrativo do equipamento"
+      (ngSubmit)="changeStatus()"
+    >
+      <label
+        >Novo status<select name="newStatus" [(ngModel)]="statusForm.status">
+          <option value="ATIVO">Ativo</option>
+          <option value="MANUTENCAO">Manutenção</option>
+          <option value="FORA_DE_USO">Fora de uso</option>
+        </select></label
+      >
+      <label class="span-2"
+        >Motivo<input
+          name="statusReason"
+          [(ngModel)]="statusForm.motivo"
+          minlength="3"
+          maxlength="500"
+          required
+      /></label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="statusChangeForm.invalid || saving"
+        >
+          Confirmar status
+        </button>
+      </div>
+    </form>
+
+    <form
+      *ngIf="showCalibrationForm"
+      id="equipment-calibration-form"
+      #calibrationPolicyForm="ngForm"
+      class="panel form-grid"
+      aria-label="Configurar política de calibração"
+      (ngSubmit)="configureCalibration()"
+    >
+      <label class="checkbox-field"
+        ><input
+          name="calibrationRequired"
+          type="checkbox"
+          [(ngModel)]="calibrationForm.requer_calibracao"
+        />
+        Exige calibração</label
+      >
+      <label *ngIf="calibrationForm.requer_calibracao"
+        >Periodicidade (dias)<input
+          name="calibrationFrequency"
+          type="number"
+          min="1"
+          [(ngModel)]="calibrationForm.frequencia_calibracao_dias"
+          required
+      /></label>
+      <label class="span-2"
+        >Justificativa<input
+          name="calibrationReason"
+          [(ngModel)]="calibrationForm.motivo"
+          minlength="3"
+          maxlength="500"
+          required
+      /></label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="calibrationPolicyForm.invalid || saving"
+        >
+          Salvar política
+        </button>
+      </div>
+    </form>
+
+    <div class="subsection">
+      <h3>Histórico de calibração e manutenção</h3>
+      <div *ngIf="!detailLoading && !events.length" class="alert-box">
+        Nenhuma intervenção registrada.
+      </div>
+      <div *ngIf="!detailLoading && events.length" class="event-list">
+        <article
+          *ngFor="let event of events; trackBy: trackById"
+          class="event-card"
+        >
+          <div>
+            <span
+              class="badge"
+              [ngClass]="
+                event.status === 'CONCLUIDO'
+                  ? 'success'
+                  : event.status === 'CANCELADO'
+                    ? 'neutral'
+                    : 'warning'
+              "
+              >{{ statusLabel(event.status) }}</span
+            ><strong>{{ event.tipo.replaceAll("_", " ") }}</strong>
+            <p>{{ event.descricao }}</p>
+            <small>{{
+              event.agendado_para
+                ? "Agendado para " + date(event.agendado_para, true)
+                : "Criado por " +
+                  (event.criado_por_nome || "usuário do sistema")
+            }}</small>
+          </div>
+          <div
+            class="inline-actions"
+            *ngIf="
+              event.status === 'AGENDADO' || event.status === 'EM_ANDAMENTO'
+            "
+          >
+            <button
+              *ngIf="event.status === 'AGENDADO' && canOperate"
+              class="button secondary small"
+              type="button"
+              (click)="start(event)"
+              [attr.aria-label]="'Iniciar intervenção: ' + event.descricao"
+            >
+              Iniciar
+            </button>
+            <button
+              *ngIf="isManager"
+              class="button small"
+              type="button"
+              (click)="openEventAction(event, 'complete')"
+              [attr.aria-label]="'Concluir intervenção: ' + event.descricao"
+            >
+              Concluir
+            </button>
+            <button
+              *ngIf="isManager"
+              class="button danger small"
+              type="button"
+              (click)="openEventAction(event, 'cancel')"
+              [attr.aria-label]="'Cancelar intervenção: ' + event.descricao"
+            >
+              Cancelar
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <form
+      *ngIf="selectedEvent && eventAction"
+      #eventActionForm="ngForm"
+      class="panel form-grid event-action"
+      aria-label="Concluir ou cancelar intervenção"
+      (ngSubmit)="finishEvent()"
+    >
+      <h3 class="span-all">
+        {{ eventAction === "cancel" ? "Cancelar" : "Concluir" }}
+        {{ selectedEvent.tipo.replaceAll("_", " ").toLocaleLowerCase("pt-BR") }}
+      </h3>
+      <ng-container *ngIf="eventAction === 'complete'">
+        <label
+          >Resultado<select
+            name="result"
+            [(ngModel)]="completionForm.resultado"
+          >
+            <option value="APROVADO">Aprovado</option>
+            <option value="REPROVADO">Reprovado</option>
+            <option
+              *ngIf="selectedEvent.tipo !== 'CALIBRACAO'"
+              value="NAO_APLICAVEL"
+            >
+              Não aplicável
+            </option>
+          </select></label
+        >
+        <label
+          *ngIf="
+            selectedEvent.tipo === 'CALIBRACAO' &&
+            completionForm.resultado === 'APROVADO'
+          "
+          >Próxima calibração<input
+            name="nextCalibration"
+            type="date"
+            [(ngModel)]="completionForm.proxima_calibracao"
+            required
+        /></label>
+        <label class="span-2"
+          >Certificado (URL)<input
+            name="certificate"
+            type="url"
+            [(ngModel)]="completionForm.certificado_url"
+        /></label>
+        <label class="span-all"
+          >Observação<textarea
+            name="completionNotes"
+            [(ngModel)]="completionForm.observacao"
+          ></textarea>
+        </label>
+      </ng-container>
+      <label *ngIf="eventAction === 'cancel'" class="span-all"
+        >Motivo<textarea
+          name="cancelReason"
+          [(ngModel)]="completionForm.motivo"
+          minlength="3"
+          maxlength="500"
+          required
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button secondary"
+          type="button"
+          (click)="eventAction = null; selectedEvent = null"
+        >
+          Voltar</button
+        ><button
+          class="button"
+          [class.danger]="eventAction === 'cancel'"
+          type="submit"
+          [disabled]="eventActionForm.invalid || saving"
+        >
+          Confirmar
+        </button>
+      </div>
+    </form>
+  </section>
+</main>

@@ -1,0 +1,69 @@
+<main class="verification-page" aria-labelledby="verification-title">
+  <section class="verification-card" [attr.aria-busy]="loading">
+    <div class="brand-mark" aria-hidden="true">
+      <i class="fa-solid fa-flask"></i>
+    </div>
+
+    <div *ngIf="loading" class="state" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+      <h1 id="verification-title">Verificando o documento…</h1>
+      <p>Aguarde enquanto consultamos o registro imutável.</p>
+    </div>
+
+    <div *ngIf="!loading && report" class="verified" role="status">
+      <span class="status-icon" aria-hidden="true"
+        ><i class="fa-solid fa-check"></i
+      ></span>
+      <span class="eyebrow">Documento autêntico</span>
+      <h1 id="verification-title">{{ report.numero }}</h1>
+      <p>O hash corresponde a uma versão emitida e preservada pelo SYSmLab.</p>
+
+      <dl>
+        <div>
+          <dt>Laboratório</dt>
+          <dd>{{ report.laboratorio_nome }}</dd>
+        </div>
+        <div>
+          <dt>Versão</dt>
+          <dd>{{ report.versao }}</dd>
+        </div>
+        <div>
+          <dt>Resultados</dt>
+          <dd>{{ report.total_resultados }}</dd>
+        </div>
+        <div *ngIf="report.integridade_conteudo_valida !== undefined">
+          <dt>Conteúdo</dt>
+          <dd>{{
+            report.integridade_conteudo_valida ? "Íntegro" : "Não confirmado"
+          }}</dd>
+        </div>
+        <div *ngIf="report.assinatura_valida !== undefined">
+          <dt>Assinatura eletrônica</dt>
+          <dd>{{ report.assinatura_valida ? "Válida" : "Não confirmada" }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Emissão</dt>
+          <dd>{{ formatDate(report.emitido_em) }}</dd>
+        </div>
+      </dl>
+      <div class="hash">
+        <span>SHA-256</span><code>{{ report.conteudo_hash }}</code>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && !report" class="invalid" role="alert">
+      <span class="status-icon" aria-hidden="true"
+        ><i class="fa-solid fa-xmark"></i
+      ></span>
+      <span class="eyebrow">Verificação não concluída</span>
+      <h1 id="verification-title">Documento não confirmado</h1>
+      <p>
+        {{
+          error || "Não encontramos um laudo com este código de integridade."
+        }}
+      </p>
+    </div>
+
+    <a class="back-link" routerLink="/login">Acessar o SYSmLab</a>
+  </section>
+</main>

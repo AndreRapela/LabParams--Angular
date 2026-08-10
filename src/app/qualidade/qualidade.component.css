@@ -1,0 +1,95 @@
+.overdue {
+  color: var(--danger-color);
+}
+
+.narrative-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.narrative-grid article {
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #fbfdff;
+}
+
+.narrative-grid h3,
+.action-form h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.83rem;
+}
+
+.narrative-grid p,
+.capa-card p {
+  margin: 0;
+  color: #3d4d60;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.capa-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.capa-card {
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #fbfdff;
+}
+
+.capa-card.overdue-card {
+  border-color: #efc4c7;
+  background: #fff8f8;
+}
+
+.capa-card strong {
+  margin-left: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.capa-card p {
+  margin-top: 0.4rem;
+  color: var(--text-muted);
+}
+
+.capa-card small {
+  display: block;
+  margin-top: 0.35rem;
+  color: #526276;
+}
+
+.decision-form,
+.action-form {
+  margin-top: 1rem;
+  border-color: #bfd8eb;
+  background: #f8fcff;
+}
+
+.loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 680px) {
+  .narrative-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .capa-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

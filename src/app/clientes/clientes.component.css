@@ -1,0 +1,14 @@
+.status-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #33475f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--primary-color);
+}

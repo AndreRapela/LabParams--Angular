@@ -3,14 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_CONFIG } from '../../config/api.config';
 
-// --- INTERFACES CORRIGIDAS ---
-
-// Define o formato do dado unitário que vem do banco para o gráfico
-// CORREÇÃO: Alinhado com o backend real que retorna valor_parametro
 export interface DadosGrafico {
+  parametro_id: number;
   parametro: string;
-  valor_parametro: number | string; // CORRIGIDO: valor_parametro (não valor_medio)
-  // total_analises REMOVIDO: não é retornado pelo backend atual
+  unidade_medida: string | null;
+  valor_medio: number | string;
+  valor_minimo_observado: number | string;
+  valor_maximo_observado: number | string;
+  total_analises: number;
+  ultima_coleta: string;
 }
 
 // Define o envelope padrão da sua API (success, data, message)
@@ -27,7 +28,6 @@ export interface ApiResponse<T> {
 })
 export class GraficoParametroService {
 
-  // URL da Rota que criamos no Backend (ajuste a porta se necessário)
   private apiUrl = `${API_CONFIG.baseUrl}/grafico-parametros`;
 
   constructor(private http: HttpClient) { }

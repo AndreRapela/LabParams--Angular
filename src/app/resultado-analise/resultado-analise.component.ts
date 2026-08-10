@@ -12,24 +12,32 @@ import {
 import { finalize, forkJoin } from 'rxjs';
 import { ImportacaoResultadoComponent } from '../importacao-resultado/importacao-resultado.component';
 import { ParametrosFilterService } from '../shared/filtro-parametros.service';
+import { ConfirmationService } from '../shared/feedback/confirmation.service';
+import { NotificationService } from '../shared/feedback/notification.service';
+import { MetodoAnalitico } from '../metodos-analiticos/metodo-analitico.model';
 import {
   Amostra,
   Legislacao,
+  LegislacaoContexto,
   Matriz,
   Parametro,
   ResultadoAnalise,
   ResultadoAnaliseService,
 } from './resultado-analise.service';
 
+function getApiError(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+  const candidate = error as { error?: { message?: unknown; error?: unknown }; message?: unknown };
+  if (typeof candidate.error?.message === 'string') return candidate.error.message;
+  if (typeof candidate.error?.error === 'string') return candidate.error.error;
+  if (typeof candidate.message === 'string') return candidate.message;
+  return fallback;
+}
+
 @Component({
   selector: 'app-resultado-analise',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormsModule,
-    ImportacaoResultadoComponent,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, ImportacaoResultadoComponent],
   templateUrl: './resultado-analise.component.html',
   styleUrls: ['./resultado-analise.component.css'],
 })
@@ -46,14 +54,18 @@ export class ResultadoAnaliseComponent implements OnInit {
   parametroSelecionado: Parametro | null = null;
   amostras: Amostra[] = [];
   parametros: Parametro[] = [];
+  metodos: MetodoAnalitico[] = [];
   matrizes: Matriz[] = [];
   legislacoes: Legislacao[] = [];
+  contextos: LegislacaoContexto[] = [];
   parametrosAtivos: number[] = [];
 
   readonly resultadoForm: FormGroup;
   isEditing = false;
   editingId?: number;
   loading = false;
+  loadingParametros = false;
+  loadingMetodos = false;
   filtroCodigoAmostra = '';
   filtroDataColeta = '';
   filtroDataPublicacao = '';
@@ -64,13 +76,14 @@ export class ResultadoAnaliseComponent implements OnInit {
   totalItens = 0;
   totalPaginas = 0;
   paginas: number[] = [];
-
   resultadoParaVisualizacao: ResultadoAnalise | null = null;
 
   constructor(
     private readonly resultadoService: ResultadoAnaliseService,
     private readonly formBuilder: FormBuilder,
-    private readonly parametrosFilter: ParametrosFilterService
+    private readonly parametrosFilter: ParametrosFilterService,
+    private readonly notifications: NotificationService,
+    private readonly confirmations: ConfirmationService
   ) {
     this.resultadoForm = this.createForm();
   }
@@ -78,7 +91,6 @@ export class ResultadoAnaliseComponent implements OnInit {
   ngOnInit(): void {
     this.loadData();
     this.setupFormListeners();
-
     this.parametrosFilter
       .get()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -89,176 +101,179 @@ export class ResultadoAnaliseComponent implements OnInit {
       });
   }
 
+  get legislacoesDisponiveis(): Legislacao[] {
+    const matrizId = Number(this.resultadoForm.getRawValue().matriz);
+    if (!matrizId) return [];
+    const ids = new Set(
+      this.contextos
+        .filter((contexto) => Number(contexto.matriz_id) === matrizId)
+        .map((contexto) => Number(contexto.legislacao_id))
+    );
+    return this.legislacoes.filter((legislacao) => ids.has(Number(legislacao.id)));
+  }
+
+  get contextosDisponiveis(): LegislacaoContexto[] {
+    const form = this.resultadoForm.getRawValue();
+    const matrizId = Number(form.matriz);
+    const legislacaoId = Number(form.legislacao);
+    return this.contextos.filter(
+      (contexto) =>
+        Number(contexto.matriz_id) === matrizId &&
+        Number(contexto.legislacao_id) === legislacaoId
+    );
+  }
+
+  get resultadoQualitativo(): boolean {
+    return this.parametroSelecionado?.tipo_resultado === 'qualitativo';
+  }
+
   createForm(): FormGroup {
     return this.formBuilder.group({
-      valor_medido: ['', [Validators.required, Validators.min(0)]],
       amostra_id: ['', Validators.required],
+      matriz: [{ value: '', disabled: true }, Validators.required],
+      legislacao: ['', Validators.required],
+      contexto_legislacao_id: ['', Validators.required],
       parametro_id: ['', Validators.required],
+      metodo_analitico_id: [''],
+      valor_medido: ['', [Validators.required, Validators.min(0)]],
+      valor_qualitativo: [''],
       datacoleta: [
         '',
         [
           Validators.required,
-          Validators.pattern(
-            /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/
-          ),
+          Validators.pattern(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/),
           this.validarDataPassada,
         ],
       ],
-      matriz: ['', Validators.required],
-      legislacao: ['', Validators.required],
     });
   }
 
   validarDataPassada(control: AbstractControl) {
     const valor = control.value as string;
     if (!valor || valor.length !== 10) return null;
-
     const [dia, mes, ano] = valor.split('/').map(Number);
-    const dataInserida = new Date(ano, mes - 1, dia);
-    const dataValida =
-      dataInserida.getFullYear() === ano &&
-      dataInserida.getMonth() === mes - 1 &&
-      dataInserida.getDate() === dia;
-
-    if (!dataValida) return { dataInvalida: true };
-
+    const data = new Date(ano, mes - 1, dia);
+    if (
+      data.getFullYear() !== ano ||
+      data.getMonth() !== mes - 1 ||
+      data.getDate() !== dia
+    ) {
+      return { dataInvalida: true };
+    }
     const hoje = new Date();
     hoje.setHours(23, 59, 59, 999);
-    return dataInserida > hoje ? { dataFutura: true } : null;
+    return data > hoje ? { dataFutura: true } : null;
   }
 
   loadData(): void {
     this.loading = true;
-
     forkJoin({
       resultados: this.resultadoService.getResultados(),
       amostras: this.resultadoService.getAmostras(),
-      parametros: this.resultadoService.getParametros(),
       matrizes: this.resultadoService.getMatrizes(),
       legislacoes: this.resultadoService.getLegislacoes(),
+      contextos: this.resultadoService.getContextos(),
     })
-      .pipe(
-        finalize(() => (this.loading = false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => (this.loading = false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ resultados, amostras, parametros, matrizes, legislacoes }) => {
+        next: ({ resultados, amostras, matrizes, legislacoes, contextos }) => {
           this.todosResultados = resultados.data ?? [];
           this.amostras = amostras.data ?? [];
-          this.parametros = parametros.data ?? [];
           this.matrizes = matrizes.data ?? [];
           this.legislacoes = legislacoes.data ?? [];
-          this.amostraPorId = new Map(this.amostras.map((item) => [item.id, item]));
-          this.parametroPorId = new Map(
-            this.parametros.map((item) => [item.id, item])
-          );
+          this.contextos = contextos.data ?? [];
+          this.amostraPorId = new Map(this.amostras.map((item) => [Number(item.id), item]));
           this.aplicarFiltros();
         },
-        error: () => alert('Erro ao carregar dados do servidor.'),
+        error: () => this.notifications.error('Erro ao carregar dados do servidor.'),
       });
-  }
-
-  visualizarResultado(resultado: ResultadoAnalise): void {
-    this.resultadoParaVisualizacao = resultado;
-  }
-
-  fecharVisualizacao(): void {
-    this.resultadoParaVisualizacao = null;
   }
 
   onSubmit(): void {
     if (this.resultadoForm.invalid) {
-      this.markFormGroupTouched();
-      alert('Verifique os campos obrigatórios.');
+      this.resultadoForm.markAllAsTouched();
+      this.notifications.warning('Verifique os campos obrigatórios.');
       return;
     }
 
-    this.loading = true;
-    const formData = this.resultadoForm.getRawValue();
-    const [dia, mes, ano] = String(formData.datacoleta).split('/');
+    const form = this.resultadoForm.getRawValue();
+    const [dia, mes, ano] = String(form.datacoleta).split('/');
     const payload = {
-      valor_medido: Number(formData.valor_medido),
-      amostra_id: Number(formData.amostra_id),
-      parametro_id: Number(formData.parametro_id),
+      valor_medido: this.resultadoQualitativo ? null : Number(form.valor_medido),
+      valor_qualitativo: this.resultadoQualitativo ? form.valor_qualitativo : null,
+      amostra_id: Number(form.amostra_id),
+      parametro_id: Number(form.parametro_id),
+      metodo_analitico_id: Number(form.metodo_analitico_id) || null,
+      contexto_legislacao_id: Number(form.contexto_legislacao_id),
       datacoleta: new Date(`${ano}-${mes}-${dia}T12:00:00`).toISOString(),
-      matriz_id_selecionada: formData.matriz ? Number(formData.matriz) : null,
-      legislacao_id_selecionada: formData.legislacao
-        ? Number(formData.legislacao)
-        : null,
+      matriz_id_selecionada: Number(form.matriz),
+      legislacao_id_selecionada: Number(form.legislacao),
     };
 
-    const operation =
-      this.isEditing && this.editingId
-        ? this.resultadoService.updateResultado(this.editingId, payload)
-        : this.resultadoService.createResultado(payload);
+    this.loading = true;
+    const operation = this.isEditing && this.editingId
+      ? this.resultadoService.updateResultado(this.editingId, payload)
+      : this.resultadoService.createResultado(payload);
 
     operation
-      .pipe(
-        finalize(() => (this.loading = false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => (this.loading = false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          alert('Operação realizada com sucesso!');
+          this.notifications.success('Resultado salvo com o limite legal aplicado.');
           this.resetForm();
           this.loadData();
         },
         error: (error) =>
-          alert(error.error?.message || 'Não foi possível salvar o resultado.'),
+          this.notifications.error(getApiError(error, 'Não foi possível salvar o resultado.')),
       });
   }
 
   editResultado(resultado: ResultadoAnalise): void {
     this.isEditing = true;
     this.editingId = resultado.id;
-
     const data = resultado.datacoleta?.toString().split('T')[0].split('-');
     const dataFormatada = data?.length === 3 ? `${data[2]}/${data[1]}/${data[0]}` : '';
-    const amostraId = Number(resultado.amostra_id);
-    const parametroId = Number(resultado.parametro_id);
-
-    this.amostraSelecionada = this.amostraPorId.get(amostraId) ?? null;
-    this.parametroSelecionado = this.parametroPorId.get(parametroId) ?? null;
-    this.numeroAmostraSelecionada =
-      this.amostraSelecionada?.numero_da_amostra ?? '';
-
-    const matrizEncontrada = this.matrizes.find(
-      (matriz) => matriz.nome === resultado.matriz
-    );
-    const legislacaoEncontrada = this.legislacoes.find(
-      (legislacao) =>
-        `${legislacao.nome} (${legislacao.sigla})` === resultado.legislacao
-    );
+    const amostra = this.amostraPorId.get(Number(resultado.amostra_id)) ?? null;
+    this.amostraSelecionada = amostra;
+    this.numeroAmostraSelecionada = amostra?.numero_da_amostra ?? '';
 
     this.resultadoForm.patchValue({
-      valor_medido: resultado.valor_medido,
-      amostra_id: amostraId,
-      parametro_id: parametroId,
+      amostra_id: resultado.amostra_id,
+      matriz: amostra?.matriz_id,
+      legislacao: this.legislacoes.find((l) => l.sigla === resultado.legislacao_sigla)?.id,
+      contexto_legislacao_id: resultado.contexto_legislacao_id,
       datacoleta: dataFormatada,
-      matriz: matrizEncontrada?.id ?? this.amostraSelecionada?.matriz_id ?? null,
-      legislacao:
-        legislacaoEncontrada?.id ?? this.parametroSelecionado?.legislacao_id ?? null,
-    });
+      valor_medido: resultado.valor_medido,
+      valor_qualitativo: resultado.valor_qualitativo,
+    }, { emitEvent: false });
 
+    this.carregarParametros(
+      Number(resultado.contexto_legislacao_id),
+      Number(resultado.parametro_id),
+      Number(resultado.metodo_analitico_id)
+    );
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  deleteResultado(id: number): void {
-    if (!confirm('Tem certeza que deseja excluir este resultado?')) return;
-
+  async deleteResultado(id: number): Promise<void> {
+    const confirmed = await this.confirmations.confirm({
+      title: 'Arquivar resultado',
+      message: 'O resultado deixará as listas ativas, mas todo o histórico será preservado para auditoria.',
+      confirmLabel: 'Arquivar',
+      danger: true,
+    });
+    if (!confirmed) return;
     this.loading = true;
     this.resultadoService
       .deleteResultado(id)
-      .pipe(
-        finalize(() => (this.loading = false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => (this.loading = false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          alert('Resultado excluído com sucesso!');
+          this.notifications.success('Resultado arquivado com sucesso.');
           this.loadData();
         },
-        error: () => alert('Não foi possível excluir o resultado.'),
+        error: (error) =>
+          this.notifications.error(getApiError(error, 'Não foi possível arquivar o resultado.')),
       });
   }
 
@@ -269,10 +284,18 @@ export class ResultadoAnaliseComponent implements OnInit {
     this.amostraSelecionada = null;
     this.parametroSelecionado = null;
     this.numeroAmostraSelecionada = '';
+    this.parametros = [];
+    this.metodos = [];
+    this.parametroPorId.clear();
+    this.configurarTipoResultado(null);
   }
 
-  markFormGroupTouched(): void {
-    this.resultadoForm.markAllAsTouched();
+  visualizarResultado(resultado: ResultadoAnalise): void {
+    this.resultadoParaVisualizacao = resultado;
+  }
+
+  fecharVisualizacao(): void {
+    this.resultadoParaVisualizacao = null;
   }
 
   formatarData(event: Event): void {
@@ -286,11 +309,27 @@ export class ResultadoAnaliseComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = this.aplicarMascaraData(input.value);
     input.value = value;
-
     if (tipo === 'coleta') this.filtroDataColeta = value;
     else this.filtroDataPublicacao = value;
-
     this.paginaAtual = 1;
+  }
+
+  formatarLimite(parametro: Parametro | null = this.parametroSelecionado): string {
+    if (!parametro) return '';
+    if (parametro.tipo_limite === 'ausencia' || parametro.tipo_limite === 'informativo') {
+      return parametro.criterio_texto || 'Critério descritivo da legislação';
+    }
+    const unidade = parametro.unidade_medida ? ` ${parametro.unidade_medida}` : '';
+    if (parametro.limite_minimo !== null && parametro.limite_maximo !== null) {
+      return `${this.formatarNumero(parametro.limite_minimo)} a ${this.formatarNumero(parametro.limite_maximo)}${unidade}`;
+    }
+    if (parametro.limite_minimo !== null) return `mínimo ${this.formatarNumero(parametro.limite_minimo)}${unidade}`;
+    if (parametro.limite_maximo !== null) return `máximo ${this.formatarNumero(parametro.limite_maximo)}${unidade}`;
+    return parametro.criterio_texto || 'Sem limite numérico';
+  }
+
+  private formatarNumero(valor: number): string {
+    return Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 9 });
   }
 
   getAmostraCodigo(id: number): string {
@@ -301,74 +340,57 @@ export class ResultadoAnaliseComponent implements OnInit {
     return this.amostraPorId.get(Number(id))?.numero_da_amostra ?? '';
   }
 
-  getParametroNome(id: number): string {
-    return this.parametroPorId.get(Number(id))?.nome ?? 'N/D';
+  getParametroNome(resultado: ResultadoAnalise): string {
+    return resultado.parametro_nome || this.parametroPorId.get(Number(resultado.parametro_id))?.nome || 'N/D';
   }
 
-  getStatusConformidade(resultado: ResultadoAnalise): 'conforme' | 'nao-conforme' {
-    const parametro = this.parametroPorId.get(Number(resultado.parametro_id));
-    if (
-      !parametro ||
-      parametro.limite_minimo === null ||
-      parametro.limite_maximo === null
-    ) {
-      return 'conforme';
-    }
+  getValorResultado(resultado: ResultadoAnalise): string {
+    if (resultado.valor_qualitativo) return resultado.valor_qualitativo;
+    if (resultado.valor_medido === null) return 'N/D';
+    return `${Number(resultado.valor_medido).toLocaleString('pt-BR', { maximumFractionDigits: 6 })}${resultado.unidade_medida ? ` ${resultado.unidade_medida}` : ''}`;
+  }
 
-    return resultado.valor_medido < parametro.limite_minimo ||
-      resultado.valor_medido > parametro.limite_maximo
-      ? 'nao-conforme'
-      : 'conforme';
+  getStatusConformidade(resultado: ResultadoAnalise): 'conforme' | 'nao-conforme' | 'informativo' {
+    return resultado.status_conformidade ?? 'informativo';
   }
 
   getStatusText(status: string): string {
-    return status === 'nao-conforme' ? 'Não conforme' : 'Conforme';
+    if (status === 'nao-conforme') return 'Não conforme';
+    if (status === 'informativo') return 'Informativo';
+    return 'Conforme';
+  }
+
+  getWorkflowStatus(status?: ResultadoAnalise['status_resultado']): string {
+    const labels: Record<NonNullable<ResultadoAnalise['status_resultado']>, string> = {
+      rascunho: 'Rascunho',
+      em_revisao: 'Em revisão',
+      aprovado: 'Aprovado',
+      rejeitado: 'Rejeitado',
+      publicado: 'Publicado',
+    };
+    return status ? labels[status] : 'Legado';
+  }
+
+  canEditResultado(resultado: ResultadoAnalise): boolean {
+    return !resultado.status_resultado || ['rascunho', 'rejeitado'].includes(resultado.status_resultado);
   }
 
   aplicarFiltros(): void {
     const codigo = this.filtroCodigoAmostra.trim().toLocaleLowerCase('pt-BR');
     const dataColeta = this.toIsoDate(this.filtroDataColeta);
     const dataPublicacao = this.toIsoDate(this.filtroDataPublicacao);
-
     const resultados = this.todosResultados.filter((resultado) => {
-      if (
-        codigo &&
-        !this.getAmostraCodigo(resultado.amostra_id)
-          .toLocaleLowerCase('pt-BR')
-          .includes(codigo)
-      ) {
-        return false;
-      }
-
-      if (dataColeta && this.getDatePart(resultado.datacoleta) !== dataColeta) {
-        return false;
-      }
-
-      if (
-        dataPublicacao &&
-        this.getDatePart(resultado.datadapublicacao) !== dataPublicacao
-      ) {
-        return false;
-      }
-
-      if (
-        this.filtroStatus &&
-        this.getStatusConformidade(resultado) !== this.filtroStatus
-      ) {
-        return false;
-      }
-
-      return (
-        !this.parametrosAtivos.length ||
-        this.parametrosAtivos.includes(Number(resultado.parametro_id))
-      );
+      if (codigo && !this.getAmostraCodigo(resultado.amostra_id).toLocaleLowerCase('pt-BR').includes(codigo)) return false;
+      if (dataColeta && this.getDatePart(resultado.datacoleta) !== dataColeta) return false;
+      if (dataPublicacao && this.getDatePart(resultado.datadapublicacao) !== dataPublicacao) return false;
+      if (this.filtroStatus && this.getStatusConformidade(resultado) !== this.filtroStatus) return false;
+      return !this.parametrosAtivos.length || this.parametrosAtivos.includes(Number(resultado.parametro_id));
     });
 
     this.totalItens = resultados.length;
     this.totalPaginas = Math.ceil(this.totalItens / this.itensPorPagina);
     this.paginaAtual = Math.min(Math.max(1, this.paginaAtual), this.totalPaginas || 1);
     this.atualizarPaginasVisiveis();
-
     const inicio = (this.paginaAtual - 1) * this.itensPorPagina;
     this.resultadosPaginados = resultados.slice(inicio, inicio + this.itensPorPagina);
   }
@@ -392,9 +414,7 @@ export class ResultadoAnaliseComponent implements OnInit {
   }
 
   proxima(): void {
-    if (this.paginaAtual < this.totalPaginas) {
-      this.mudarPagina(this.paginaAtual + 1);
-    }
+    if (this.paginaAtual < this.totalPaginas) this.mudarPagina(this.paginaAtual + 1);
   }
 
   getRangeInicio(): number {
@@ -414,41 +434,125 @@ export class ResultadoAnaliseComponent implements OnInit {
   }
 
   private setupFormListeners(): void {
-    this.resultadoForm
-      .get('amostra_id')
-      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+    this.resultadoForm.get('amostra_id')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((amostraId) => {
         this.amostraSelecionada = this.amostraPorId.get(Number(amostraId)) ?? null;
-        this.numeroAmostraSelecionada =
-          this.amostraSelecionada?.numero_da_amostra ?? '';
+        this.numeroAmostraSelecionada = this.amostraSelecionada?.numero_da_amostra ?? '';
+        this.parametros = [];
+        this.metodos = [];
+        this.parametroSelecionado = null;
+        this.resultadoForm.patchValue({
+          matriz: this.amostraSelecionada?.matriz_id ?? '',
+          legislacao: '',
+          contexto_legislacao_id: '',
+          parametro_id: '',
+          metodo_analitico_id: '',
+        }, { emitEvent: false });
 
-        if (this.amostraSelecionada && !this.isEditing) {
-          this.resultadoForm.patchValue({
-            matriz: this.amostraSelecionada.matriz_id,
-          });
+        if (this.legislacoesDisponiveis.length === 1) {
+          this.resultadoForm.get('legislacao')?.setValue(this.legislacoesDisponiveis[0].id);
         }
       });
 
-    this.resultadoForm
-      .get('parametro_id')
-      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((parametroId) => {
-        this.parametroSelecionado =
-          this.parametroPorId.get(Number(parametroId)) ?? null;
+    this.resultadoForm.get('legislacao')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.parametros = [];
+        this.metodos = [];
+        this.parametroSelecionado = null;
+        this.resultadoForm.patchValue({ contexto_legislacao_id: '', parametro_id: '', metodo_analitico_id: '' }, { emitEvent: false });
+        if (this.contextosDisponiveis.length === 1) {
+          this.resultadoForm.get('contexto_legislacao_id')?.setValue(this.contextosDisponiveis[0].id);
+        }
+      });
 
-        if (this.parametroSelecionado && !this.isEditing) {
-          this.resultadoForm.patchValue({
-            legislacao: this.parametroSelecionado.legislacao_id,
-          });
+    this.resultadoForm.get('contexto_legislacao_id')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((contextoId) => {
+        this.parametroSelecionado = null;
+        this.metodos = [];
+        this.resultadoForm.get('parametro_id')?.setValue('', { emitEvent: false });
+        this.resultadoForm.get('metodo_analitico_id')?.setValue('', { emitEvent: false });
+        if (contextoId) this.carregarParametros(Number(contextoId));
+        else this.parametros = [];
+      });
+
+    this.resultadoForm.get('parametro_id')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((parametroId) => {
+        this.parametroSelecionado = this.parametroPorId.get(Number(parametroId)) ?? null;
+        this.configurarTipoResultado(this.parametroSelecionado);
+        this.resultadoForm.get('metodo_analitico_id')?.setValue('', { emitEvent: false });
+        if (parametroId && this.amostraSelecionada) {
+          this.carregarMetodos(Number(parametroId), Number(this.amostraSelecionada.matriz_id));
+        } else {
+          this.metodos = [];
         }
       });
   }
 
+  private carregarParametros(contextoId: number, parametroId?: number, metodoId?: number): void {
+    if (!contextoId) return;
+    this.loadingParametros = true;
+    this.resultadoService.getParametros(contextoId)
+      .pipe(finalize(() => (this.loadingParametros = false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.parametros = response.data ?? [];
+          this.parametroPorId = new Map(this.parametros.map((item) => [Number(item.id), item]));
+          if (parametroId) {
+            this.resultadoForm.get('parametro_id')?.setValue(parametroId, { emitEvent: false });
+            this.parametroSelecionado = this.parametroPorId.get(Number(parametroId)) ?? null;
+            this.configurarTipoResultado(this.parametroSelecionado);
+            if (this.amostraSelecionada) {
+              this.carregarMetodos(parametroId, Number(this.amostraSelecionada.matriz_id), metodoId);
+            }
+          }
+        },
+        error: () => this.notifications.error('Não foi possível carregar os parâmetros desta legislação.'),
+      });
+  }
+
+  private carregarMetodos(parametroId: number, matrizId: number, metodoId?: number): void {
+    this.loadingMetodos = true;
+    this.resultadoService.getMetodosAplicaveis(parametroId, matrizId)
+      .pipe(finalize(() => (this.loadingMetodos = false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.metodos = response.data ?? [];
+          if (metodoId && this.metodos.some((item) => Number(item.id) === Number(metodoId))) {
+            this.resultadoForm.get('metodo_analitico_id')?.setValue(metodoId, { emitEvent: false });
+          } else if (this.metodos.length === 1) {
+            this.resultadoForm.get('metodo_analitico_id')?.setValue(this.metodos[0].id, { emitEvent: false });
+          }
+        },
+        error: () => {
+          this.metodos = [];
+          this.notifications.error('Não foi possível carregar os métodos aplicáveis.');
+        },
+      });
+  }
+
+  private configurarTipoResultado(parametro: Parametro | null): void {
+    const numerico = this.resultadoForm.get('valor_medido');
+    const qualitativo = this.resultadoForm.get('valor_qualitativo');
+    if (parametro?.tipo_resultado === 'qualitativo') {
+      numerico?.clearValidators();
+      numerico?.setValue(null, { emitEvent: false });
+      qualitativo?.setValidators(Validators.required);
+    } else {
+      qualitativo?.clearValidators();
+      qualitativo?.setValue('', { emitEvent: false });
+      numerico?.setValidators([Validators.required, Validators.min(0)]);
+    }
+    numerico?.updateValueAndValidity({ emitEvent: false });
+    qualitativo?.updateValueAndValidity({ emitEvent: false });
+  }
+
   private aplicarMascaraData(input: string): string {
     const digits = input.replace(/\D/g, '').slice(0, 8);
-    if (digits.length > 4) {
-      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    }
+    if (digits.length > 4) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
     if (digits.length > 2) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
     return digits;
   }

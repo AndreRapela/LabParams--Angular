@@ -200,6 +200,7 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
       alerta: 'Alerta',
       critico: 'Crítico',
       'nao-conforme': 'Não conforme',
+      informativo: 'Informativo',
     };
     return labels[status];
   }
@@ -220,11 +221,24 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
     return parameter.limite_maximo ?? parameter.max_limit;
   }
 
-  formatValue(value: number | undefined): string {
+  formatValue(value: number | string | null | undefined): string {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
-      return 'N/D';
+      return typeof value === 'string' && value.trim() ? value : 'N/D';
     }
     return this.numberFormatter.format(Number(value));
+  }
+
+  getLimitLabel(parameter: ComplianceData): string {
+    if (parameter.criterio_legal) return parameter.criterio_legal;
+    const minimum = this.getMinimum(parameter);
+    const maximum = this.getMaximum(parameter);
+    const unit = this.getUnit(parameter);
+    if (minimum !== undefined && maximum !== undefined) {
+      return `${this.formatValue(minimum)} – ${this.formatValue(maximum)} ${unit}`.trim();
+    }
+    if (minimum !== undefined) return `Mínimo ${this.formatValue(minimum)} ${unit}`.trim();
+    if (maximum !== undefined) return `Máximo ${this.formatValue(maximum)} ${unit}`.trim();
+    return 'Critério informativo';
   }
 
   getTimeAgo(dateString: string): string {
@@ -253,7 +267,9 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
     const maximum = this.getMaximum(parameter) ?? 1;
     if (maximum === minimum) return '50%';
 
-    const percentage = ((parameter.current_value - minimum) / (maximum - minimum)) * 100;
+    const numericValue = Number(parameter.current_value);
+    if (!Number.isFinite(numericValue)) return '0%';
+    const percentage = ((numericValue - minimum) / (maximum - minimum)) * 100;
     return `${Math.min(100, Math.max(0, percentage))}%`;
   }
 

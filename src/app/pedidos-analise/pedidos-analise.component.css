@@ -1,0 +1,39 @@
+.toolbar {
+  justify-content: flex-start;
+}
+
+.toolbar .search-field {
+  flex: 1;
+}
+
+.status-filter {
+  width: min(100%, 12rem);
+}
+
+.toolbar .btn-pilot {
+  margin-left: auto;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.status-dialog {
+  width: min(100%, 520px);
+}
+
+@media (max-width: 820px) {
+  .status-filter {
+    width: 100%;
+  }
+
+  .toolbar .btn-pilot {
+    margin-left: 0;
+  }
+
+  .row-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}

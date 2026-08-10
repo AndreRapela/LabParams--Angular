@@ -19,7 +19,7 @@
 
   <div *ngIf="!isLoading && !errorMessage && labels.length === 0" class="empty-state alert alert-info">
     <i class="fas fa-info-circle"></i>
-    Nenhum parâmetro configurado para exibir no gráfico.
+    Nenhum resultado numérico disponível para exibir no gráfico.
   </div>
 
   <!-- Gráfico -->
@@ -29,7 +29,7 @@
       <div class="card">
         <div class="card-body">
           <h4 class="card-title mb-3 fw-bold text-secondary">
-            Total de Parâmetros ({{ labels.length }})
+            Parâmetros com resultados ({{ labels.length }})
           </h4>
 
           <div class="chart-wrapper">

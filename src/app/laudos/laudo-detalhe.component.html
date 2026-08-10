@@ -1,0 +1,222 @@
+<main class="pilot-page report-page" aria-labelledby="report-title">
+  <nav class="report-nav" aria-label="Navegação do laudo">
+    <a class="btn-pilot" routerLink="/laudos"
+      ><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar aos
+      laudos</a
+    ><button
+      *ngIf="laudo"
+      type="button"
+      class="btn-pilot primary"
+      (click)="abrirImpressao()"
+      [disabled]="openingPrint || !laudo.integridade_valida"
+    >
+      <span
+        *ngIf="openingPrint"
+        class="spinner-border spinner-border-sm"
+        aria-hidden="true"
+      ></span
+      ><i *ngIf="!openingPrint" class="fa-solid fa-print" aria-hidden="true"></i
+      >{{ openingPrint ? "Preparando…" : "Abrir para impressão" }}
+    </button>
+  </nav>
+  <div *ngIf="error" class="feedback error" role="alert">{{ error }}</div>
+  <div *ngIf="loading" class="pilot-card loading-state" role="status">
+    <span class="spinner-border text-primary" aria-hidden="true"></span
+    >Carregando laudo…
+  </div>
+  <article *ngIf="laudo && !loading" class="report-sheet">
+    <header class="report-header">
+      <div class="report-brand">
+        <span class="brand-mark"
+          ><i class="fa-solid fa-flask-vial" aria-hidden="true"></i
+        ></span>
+        <div>
+          <p>{{ laudo.snapshot.laboratorio?.nome || "SYSmLab" }}</p>
+          <small>Sistema de gestão laboratorial</small>
+        </div>
+      </div>
+      <div class="report-id">
+        <span>Laudo de ensaio</span
+        ><strong id="report-title">{{ laudo.numero }}</strong
+        ><small>Versão {{ laudo.versao }}</small>
+      </div>
+    </header>
+    <section class="report-meta">
+      <div>
+        <span>Integridade</span
+        ><strong
+          class="integrity-status"
+          [class.invalid]="!laudo.integridade_valida"
+          >{{
+            laudo.integridade_valida
+              ? "Confirmada"
+              : "Falha de integridade"
+          }}</strong
+        >
+      </div>
+      <div>
+        <span>Emissão</span
+        ><strong>{{ formatDate(laudo.emitido_em, true) }}</strong>
+      </div>
+      <div>
+        <span>Hash do documento</span
+        ><code>{{ laudo.conteudo_hash || "Não informado" }}</code>
+      </div>
+    </section>
+    <section class="report-section">
+      <h2>Cliente</h2>
+      <div *ngIf="cliente; else noClient" class="info-grid">
+        <div>
+          <span>Nome / razão social</span
+          ><strong>{{ cliente.nome_razao_social }}</strong>
+        </div>
+        <div>
+          <span>Documento</span><strong>{{ cliente.documento || "—" }}</strong>
+        </div>
+        <div>
+          <span>E-mail</span><strong>{{ cliente.email || "—" }}</strong>
+        </div>
+        <div class="full">
+          <span>Endereço</span><strong>{{ cliente.endereco || "—" }}</strong>
+        </div>
+      </div>
+      <ng-template #noClient
+        ><p class="muted">
+          Dados do cliente não vinculados a esta versão.
+        </p></ng-template
+      >
+    </section>
+    <section class="report-section">
+      <h2>Amostra</h2>
+      <div *ngIf="amostra; else noSample" class="info-grid">
+        <div>
+          <span>Identificação</span
+          ><strong
+            >{{ amostra.numero_da_amostra }} ·
+            {{ amostra.codigo_amostra }}</strong
+          >
+        </div>
+        <div>
+          <span>Matriz</span><strong>{{ amostra.matriz || "—" }}</strong>
+        </div>
+        <div>
+          <span>Data de coleta</span
+          ><strong>{{ formatDate(amostra.data_coleta) }}</strong>
+        </div>
+        <div>
+          <span>Local de coleta</span
+          ><strong>{{ amostra.localizacao || "—" }}</strong>
+        </div>
+      </div>
+      <ng-template #noSample
+        ><p class="muted">
+          Dados da amostra não encontrados no snapshot.
+        </p></ng-template
+      >
+    </section>
+    <section class="report-section results-section">
+      <h2>Resultados analíticos</h2>
+      <div *ngIf="resultados.length; else noResults" class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Parâmetro / método</th>
+              <th>Resultado</th>
+              <th>Limite / referência</th>
+              <th>Conformidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let resultado of resultados; trackBy: trackByResult">
+              <td>
+                <strong>{{ resultado.parametro }}</strong
+                ><small>{{
+                  resultado.metodo
+                    ? resultado.metodo.codigo +
+                      " · " +
+                      resultado.metodo.nome +
+                      " v" +
+                      resultado.metodo.versao
+                    : "Método não informado"
+                }}</small>
+              </td>
+              <td>
+                <strong>{{ valorResultado(resultado) }}</strong
+                ><small
+                  >Publicado em
+                  {{ formatDate(resultado.publicado_em, true) }}</small
+                >
+              </td>
+              <td>
+                <span>{{ resultado.criterio_legal || "—" }}</span
+                ><small>{{ legislacaoLabel(resultado) }}</small>
+              </td>
+              <td>
+                <span
+                  class="badge-pilot"
+                  [attr.data-tone]="
+                    resultado.status_conformidade === 'nao-conforme'
+                      ? 'danger'
+                      : resultado.status_conformidade === 'conforme'
+                        ? 'success'
+                        : 'neutral'
+                  "
+                  >{{ conformidadeLabel(resultado.status_conformidade) }}</span
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noResults
+        ><p class="muted">
+          Nenhum resultado incluído nesta versão.
+        </p></ng-template
+      >
+    </section>
+    <section
+      *ngIf="laudo.observacoes || laudo.snapshot.observacoes"
+      class="report-section"
+    >
+      <h2>Observações</h2>
+      <p>{{ laudo.observacoes || laudo.snapshot.observacoes }}</p>
+    </section>
+    <section *ngIf="laudo.motivo_revisao" class="report-section revision-note">
+      <h2>Motivo da revisão</h2>
+      <p>{{ laudo.motivo_revisao }}</p>
+    </section>
+    <section class="report-section">
+      <h2>Responsabilidade técnica</h2>
+      <div *ngIf="responsavel; else noSignatures" class="signatures">
+        <div>
+          <i class="fa-solid fa-certificate" aria-hidden="true"></i
+          ><strong>{{ responsavel.nome }}</strong
+          ><span>{{ responsavel.email }}</span
+          ><small
+            >Assinatura eletrônica registrada em
+            {{
+              formatDate(
+                laudo.assinatura?.assinada_em || laudo.emitido_em,
+                true
+              )
+            }}</small
+          ><code *ngIf="laudo.assinatura?.hash" class="signature-hash">{{
+            laudo.assinatura?.hash
+          }}</code>
+        </div>
+      </div>
+      <ng-template #noSignatures
+        ><p class="muted">
+          Responsável pela emissão não incluído nesta versão.
+        </p></ng-template
+      >
+    </section>
+    <footer class="report-footer">
+      <p>
+        Este documento representa um snapshot versionado. Verifique sua
+        autenticidade pelo número, versão e hash.
+      </p>
+      <span>Página preparada pelo SYSmLab</span>
+    </footer>
+  </article>
+</main>

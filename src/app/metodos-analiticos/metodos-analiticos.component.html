@@ -1,0 +1,319 @@
+<main class="pilot-page" aria-labelledby="metodos-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Métodos e POPs controlados</p>
+      <h1 id="metodos-title">Métodos analíticos</h1>
+      <p>
+        Registre versão, escopo, limites metrológicos e referência normativa.
+      </p>
+    </div>
+    <div class="summary-grid" aria-label="Resumo dos métodos">
+      <div class="summary-card">
+        <strong>{{ metodos.length }}</strong
+        ><span>Total</span>
+      </div>
+      <div class="summary-card">
+        <strong>{{ totalAtivos }}</strong
+        ><span>Em uso</span>
+      </div>
+    </div>
+  </header>
+  <div *ngIf="feedback" class="feedback success" role="status">
+    {{ feedback }}
+  </div>
+  <div *ngIf="error && !editorOpen" class="feedback error" role="alert">
+    {{ error }}
+  </div>
+  <section class="toolbar" aria-label="Ferramentas de métodos">
+    <label class="search-field"
+      ><span class="sr-only">Buscar método</span
+      ><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i
+      ><input
+        type="search"
+        [formControl]="buscaControl"
+        placeholder="Código, nome, parâmetro ou referência" /></label
+    ><label class="active-filter"
+      ><input type="checkbox" [formControl]="somenteAtivosControl" /><span
+        >Somente ativos</span
+      ></label
+    ><button type="button" class="btn-pilot primary" (click)="novo()">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo método
+    </button>
+  </section>
+  <section class="pilot-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state" role="status">
+      <span class="spinner-border text-primary" aria-hidden="true"></span
+      >Carregando métodos…
+    </div>
+    <div *ngIf="!loading && !metodosFiltrados.length" class="empty-state">
+      <i class="fa-solid fa-microscope" aria-hidden="true"></i>
+      <h2>
+        {{
+          metodos.length
+            ? "Nenhum método corresponde aos filtros"
+            : "Nenhum método cadastrado"
+        }}
+      </h2>
+      <p>Cadastre os métodos vigentes antes de vincular resultados.</p>
+    </div>
+    <div *ngIf="!loading && metodosFiltrados.length" class="table-wrap">
+      <table class="pilot-table">
+        <caption class="sr-only">
+          Métodos analíticos
+        </caption>
+        <thead>
+          <tr>
+            <th>Método</th>
+            <th>Escopo</th>
+            <th>Referência</th>
+            <th>LD / LQ</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let metodo of metodosFiltrados; trackBy: trackById">
+            <td data-label="Método">
+              <strong>{{ metodo.codigo }} · {{ metodo.nome }}</strong
+              ><small>Versão {{ metodo.versao }}</small>
+            </td>
+            <td data-label="Escopo">
+              <span>{{ metodo.parametro_nome || "Parâmetro geral" }}</span
+              ><small>{{ metodo.matriz_nome || "Todas as matrizes" }}</small>
+            </td>
+            <td data-label="Referência">
+              {{ metodo.referencia_normativa || "—" }}
+            </td>
+            <td data-label="LD / LQ">
+              <span
+                >{{ formatDecimal(metodo.limite_deteccao) }} /
+                {{ formatDecimal(metodo.limite_quantificacao) }}</span
+              ><small>{{
+                metodo.unidade_resultado || "Unidade não informada"
+              }}</small>
+            </td>
+            <td data-label="Status">
+              <span
+                class="badge-pilot"
+                [attr.data-tone]="metodo.ativo ? 'success' : 'danger'"
+                >{{ metodo.ativo ? "Vigente" : "Inativo" }}</span
+              >
+            </td>
+            <td data-label="Ação" class="actions-cell">
+              <button
+                type="button"
+                class="btn-pilot compact"
+                (click)="editar(metodo)"
+              >
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Editar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div
+  *ngIf="editorOpen"
+  class="dialog-backdrop"
+  role="presentation"
+  (click)="fecharEditor()"
+>
+  <section
+    class="dialog-panel wide"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="metodo-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="eyebrow">Documento controlado</p>
+        <h2 id="metodo-dialog-title">
+          {{ editingId === null ? "Cadastrar método" : "Editar método" }}
+        </h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        (click)="fecharEditor()"
+        [disabled]="saving"
+        aria-label="Fechar"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form
+      class="pilot-form"
+      [formGroup]="form"
+      (ngSubmit)="salvar()"
+      novalidate
+    >
+      <div *ngIf="error" class="feedback error" role="alert">{{ error }}</div>
+      <div class="form-grid three-columns">
+        <div class="field">
+          <label for="metodo-codigo">Código</label
+          ><input
+            id="metodo-codigo"
+            formControlName="codigo"
+            [attr.aria-invalid]="
+              form.controls.codigo.invalid && form.controls.codigo.touched
+            "
+          /><small
+            *ngIf="form.controls.codigo.invalid && form.controls.codigo.touched"
+            class="field-error"
+            >Informe o código.</small
+          >
+        </div>
+        <div class="field">
+          <label for="metodo-nome">Nome</label
+          ><input
+            id="metodo-nome"
+            formControlName="nome"
+            [attr.aria-invalid]="
+              form.controls.nome.invalid && form.controls.nome.touched
+            "
+          />
+        </div>
+        <div class="field">
+          <label for="metodo-versao">Versão</label
+          ><input
+            id="metodo-versao"
+            formControlName="versao"
+            [attr.aria-invalid]="
+              form.controls.versao.invalid && form.controls.versao.touched
+            "
+          />
+        </div>
+        <div class="field">
+          <label for="metodo-parametro"
+            >Parâmetro <span class="optional">(opcional)</span></label
+          ><select id="metodo-parametro" formControlName="parametro_id">
+            <option [ngValue]="null">Aplicação geral</option>
+            <option
+              *ngFor="let parametro of parametros"
+              [ngValue]="parametro.id"
+            >
+              {{ parametro.nome }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="metodo-matriz"
+            >Matriz <span class="optional">(opcional)</span></label
+          ><select id="metodo-matriz" formControlName="matriz_id">
+            <option [ngValue]="null">Todas as matrizes</option>
+            <option *ngFor="let matriz of matrizes" [ngValue]="matriz.id">
+              {{ matriz.nome }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="metodo-unidade"
+            >Unidade do resultado
+            <span class="optional">(opcional)</span></label
+          ><input id="metodo-unidade" formControlName="unidade_resultado" />
+        </div>
+        <div class="field full-width">
+          <label for="metodo-referencia"
+            >Referência normativa
+            <span class="optional">(opcional)</span></label
+          ><input
+            id="metodo-referencia"
+            formControlName="referencia_normativa"
+            placeholder="Ex.: Standard Methods 23ª ed., método 4500-H+ B"
+          />
+        </div>
+        <div class="field full-width">
+          <label for="metodo-principio"
+            >Princípio <span class="optional">(opcional)</span></label
+          ><textarea
+            id="metodo-principio"
+            formControlName="principio"
+          ></textarea>
+        </div>
+        <div class="field full-width">
+          <label for="metodo-procedimento"
+            >Procedimento resumido
+            <span class="optional">(opcional)</span></label
+          ><textarea
+            id="metodo-procedimento"
+            formControlName="procedimento_resumido"
+          ></textarea>
+        </div>
+        <div class="field">
+          <label for="metodo-ld"
+            >Limite de detecção (LD)
+            <span class="optional">(opcional)</span></label
+          ><input
+            id="metodo-ld"
+            formControlName="limite_deteccao"
+            inputmode="decimal"
+            [attr.aria-invalid]="
+              form.controls.limite_deteccao.invalid &&
+              form.controls.limite_deteccao.touched
+            "
+          /><small
+            *ngIf="
+              form.controls.limite_deteccao.invalid &&
+              form.controls.limite_deteccao.touched
+            "
+            class="field-error"
+            >Use um número positivo.</small
+          >
+        </div>
+        <div class="field">
+          <label for="metodo-lq"
+            >Limite de quantificação (LQ)
+            <span class="optional">(opcional)</span></label
+          ><input
+            id="metodo-lq"
+            formControlName="limite_quantificacao"
+            inputmode="decimal"
+            [attr.aria-invalid]="
+              form.controls.limite_quantificacao.invalid &&
+              form.controls.limite_quantificacao.touched
+            "
+          />
+        </div>
+        <div class="field">
+          <label for="metodo-incerteza"
+            >Incerteza padrão <span class="optional">(opcional)</span></label
+          ><input
+            id="metodo-incerteza"
+            formControlName="incerteza_padrao"
+            inputmode="decimal"
+            [attr.aria-invalid]="
+              form.controls.incerteza_padrao.invalid &&
+              form.controls.incerteza_padrao.touched
+            "
+          />
+        </div>
+        <label class="active-toggle full-width"
+          ><input type="checkbox" formControlName="ativo" /><span
+            >Método vigente e disponível para uso</span
+          ></label
+        >
+      </div>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn-pilot"
+          (click)="fecharEditor()"
+          [disabled]="saving"
+        >
+          Cancelar</button
+        ><button type="submit" class="btn-pilot primary" [disabled]="saving">
+          <span
+            *ngIf="saving"
+            class="spinner-border spinner-border-sm"
+            aria-hidden="true"
+          ></span
+          >{{ saving ? "Salvando…" : "Salvar método" }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

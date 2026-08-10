@@ -25,6 +25,7 @@ export class DashboardTvComponent implements OnInit, OnDestroy {
 
   private refreshSubscription!: Subscription;
   private filtroSubscription!: Subscription;
+  private selectedParametroIds: number[] = [];
 
 
   constructor(
@@ -47,11 +48,14 @@ export class DashboardTvComponent implements OnInit, OnDestroy {
   }
 
   // duas casas após o ponto no parâmetro
-  formatValue(value: any): string {
-    const num = parseFloat(value);
+  formatValue(value: number | string | null): string {
+    if (typeof value === 'string' && value.trim() && Number.isNaN(Number(value))) {
+      return value;
+    }
+    const num = Number(value);
 
     if (isNaN(num)) {
-      return '0.00';
+      return 'N/D';
     }
 
     return new Intl.NumberFormat('pt-BR', {
@@ -65,7 +69,7 @@ export class DashboardTvComponent implements OnInit, OnDestroy {
   // Atualização automática a cada 30s
   setupAutoRefresh(): void {
     this.refreshSubscription = interval(30000)
-      .pipe(switchMap(() => this.dashboardService.getDashboardData()))
+      .pipe(switchMap(() => this.dashboardService.getDashboardData(this.selectedParametroIds)))
       .subscribe({
         next: (data) => {
           this.dashboardData = data;
@@ -77,6 +81,7 @@ export class DashboardTvComponent implements OnInit, OnDestroy {
 
 listenFiltroParametros(): void {
   this.filtroSubscription = this.filtroService.get().subscribe(ids => {
+    this.selectedParametroIds = ids;
     this.loadDashboardData(ids);
   });
 }
@@ -123,6 +128,7 @@ listenFiltroParametros(): void {
       alerta: 'status-alerta',
       critico: 'status-critico',
       'nao-conforme': 'status-nao-conforme',
+      informativo: 'status-informativo',
     };
 
     return statusMap[normalized] || 'status-nao-conforme';
@@ -136,6 +142,7 @@ listenFiltroParametros(): void {
       alerta: 'progress-bar-alerta',
       critico: 'progress-bar-critico',
       'nao-conforme': 'progress-bar-nao-conforme',
+      informativo: 'progress-bar-informativo',
     };
 
     return progressMap[normalized] || 'progress-bar-nao-conforme';
@@ -157,6 +164,8 @@ listenFiltroParametros(): void {
         return 'fas fa-times-circle';
       case 'nao-conforme':
         return 'fas fa-ban';
+      case 'informativo':
+        return 'fas fa-circle-info';
       default:
         return 'fas fa-question-circle';
     }
@@ -178,6 +187,8 @@ listenFiltroParametros(): void {
         return 'Crítico';
       case 'nao-conforme':
         return 'Não Conforme';
+      case 'informativo':
+        return 'Informativo';
       default:
         return status;
     }
@@ -188,6 +199,8 @@ listenFiltroParametros(): void {
   // ============================================================
 
   getProgressBarWidth(param: ComplianceData): string {
+    if (typeof param.current_value !== 'number' ||
+        param.limite_minimo === null || param.limite_maximo === null) return '0%';
     if (param.current_value < param.limite_minimo) return '0%';
     if (param.current_value > param.limite_maximo) return '100%';
 
@@ -196,6 +209,16 @@ listenFiltroParametros(): void {
 
     const calc = ((param.current_value - param.limite_minimo) / range) * 100;
     return `${Math.min(Math.max(calc, 0), 100)}%`;
+  }
+
+  getLimitLabel(param: ComplianceData): string {
+    if (param.criterio_legal) return param.criterio_legal;
+    if (param.limite_minimo !== null && param.limite_maximo !== null) {
+      return `${param.limite_minimo} – ${param.limite_maximo} ${param.unit}`.trim();
+    }
+    if (param.limite_minimo !== null) return `Mínimo ${param.limite_minimo} ${param.unit}`.trim();
+    if (param.limite_maximo !== null) return `Máximo ${param.limite_maximo} ${param.unit}`.trim();
+    return 'Critério informativo';
   }
 
   // ============================================================

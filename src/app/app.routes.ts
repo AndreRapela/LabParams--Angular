@@ -28,7 +28,18 @@ export const routes: Routes = [
         (module) => module.AmostraComponent
       ),
     canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
     title: 'Registro de Amostras | SYSmLab',
+  },
+  {
+    path: 'amostras/:id/etiqueta',
+    loadComponent: () =>
+      import('./amostra/etiqueta-amostra.component').then(
+        (module) => module.EtiquetaAmostraComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
+    title: 'Etiqueta da Amostra | SYSmLab',
   },
   {
     path: 'alertas',
@@ -37,7 +48,7 @@ export const routes: Routes = [
         (module) => module.AlertaNaoConformidadeComponent
       ),
     canActivate: [authGuard],
-    data: { roles: ['Gestor'] },
+    data: { roles: ['Gestor', 'Analista'] },
     title: 'Não Conformidades | SYSmLab',
   },
   {
@@ -56,7 +67,95 @@ export const routes: Routes = [
         (module) => module.ResultadoAnaliseComponent
       ),
     canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
     title: 'Resultados das Análises | SYSmLab',
+  },
+  {
+    path: 'revisao-resultados',
+    loadComponent: () =>
+      import('./revisao-resultados/revisao-resultados.component').then(
+        (module) => module.RevisaoResultadosComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
+    title: 'Revisão de Resultados | SYSmLab',
+  },
+  {
+    path: 'laudos',
+    loadComponent: () =>
+      import('./laudos/laudos.component').then(
+        (module) => module.LaudosComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
+    title: 'Laudos Analíticos | SYSmLab',
+  },
+  {
+    path: 'laudos/:id',
+    loadComponent: () =>
+      import('./laudos/laudo-detalhe.component').then(
+        (module) => module.LaudoDetalheComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
+    title: 'Detalhes do Laudo | SYSmLab',
+  },
+  {
+    path: 'clientes',
+    loadComponent: () =>
+      import('./clientes/clientes.component').then(
+        (module) => module.ClientesComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor'] },
+    title: 'Clientes | SYSmLab',
+  },
+  {
+    path: 'pedidos-analise',
+    loadComponent: () =>
+      import('./pedidos-analise/pedidos-analise.component').then(
+        (module) => module.PedidosAnaliseComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor', 'Analista'] },
+    title: 'Pedidos de Análise | SYSmLab',
+  },
+  {
+    path: 'metodos-analiticos',
+    loadComponent: () =>
+      import('./metodos-analiticos/metodos-analiticos.component').then(
+        (module) => module.MetodosAnaliticosComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor'] },
+    title: 'Métodos Analíticos | SYSmLab',
+  },
+  {
+    path: 'inventario',
+    loadComponent: () =>
+      import('./inventario/inventario.component').then(
+        (module) => module.InventarioComponent
+      ),
+    canActivate: [authGuard],
+    title: 'Inventário Laboratorial | SYSmLab',
+  },
+  {
+    path: 'equipamentos',
+    loadComponent: () =>
+      import('./equipamentos/equipamentos.component').then(
+        (module) => module.EquipamentosComponent
+      ),
+    canActivate: [authGuard],
+    title: 'Equipamentos | SYSmLab',
+  },
+  {
+    path: 'qualidade',
+    loadComponent: () =>
+      import('./qualidade/qualidade.component').then(
+        (module) => module.QualidadeComponent
+      ),
+    canActivate: [authGuard],
+    title: 'Não Conformidades e CAPA | SYSmLab',
   },
   {
     path: 'gerenciamento-parametros',
@@ -65,6 +164,7 @@ export const routes: Routes = [
         './gerenciamento-parametros/gerenciamento-parametros.component'
       ).then((module) => module.GerenciamentoParametrosComponent),
     canActivate: [authGuard],
+    data: { roles: ['Gestor'] },
     title: 'Gerenciamento de Parâmetros | SYSmLab',
   },
   {
@@ -87,12 +187,30 @@ export const routes: Routes = [
     title: 'Cadastro de Usuário | SYSmLab',
   },
   {
+    path: 'auditoria',
+    loadComponent: () =>
+      import('./auditoria/auditoria.component').then(
+        (module) => module.AuditoriaComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['Gestor'] },
+    title: 'Trilha de Auditoria | SYSmLab',
+  },
+  {
     path: 'recuperar-senha',
     loadComponent: () =>
       import('./acessos/recuperar-senha/recuperar-senha.component').then(
         (module) => module.RecuperarSenhaComponent
       ),
     title: 'Recuperar Senha | SYSmLab',
+  },
+  {
+    path: 'verificar-laudo/:hash',
+    loadComponent: () =>
+      import('./verificar-laudo/verificar-laudo.component').then(
+        (module) => module.VerificarLaudoComponent
+      ),
+    title: 'Verificar Laudo | SYSmLab',
   },
   {
     path: 'nova-senha',

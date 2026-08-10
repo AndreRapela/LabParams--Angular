@@ -18,13 +18,15 @@ export type ComplianceStatus =
   | 'conforme'
   | 'alerta'
   | 'critico'
-  | 'nao-conforme';
+  | 'nao-conforme'
+  | 'informativo';
 
 export interface ComplianceData {
   id: number;
   parametro_id: number;
   parameter_name: string;
-  current_value: number;
+  current_value: number | string | null;
+  valor_qualitativo?: string | null;
   min_limit?: number;
   max_limit?: number;
   limite_minimo?: number;
@@ -34,6 +36,8 @@ export interface ComplianceData {
   status: ComplianceStatus;
   last_update: string;
   porcentagem?: number;
+  tipo_limite?: string;
+  criterio_legal?: string | null;
   matriz_nome?: string;
   legislacao_sigla?: string;
   legislacao_nome?: string;
@@ -46,6 +50,7 @@ export interface DashboardStatistics {
   alert_count: number;
   critical_count: number;
   non_compliant_count: number;
+  informative_count?: number;
   total_parameters: number;
 }
 

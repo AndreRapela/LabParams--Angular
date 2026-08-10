@@ -1,16 +1,29 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, FormsModule } from '@angular/forms';
+import { finalize, forkJoin } from 'rxjs';
 
 // Serviços
 import { AmostraService, Amostra, MatrizOption, UsuarioOption } from './amostra.service';
 // Importamos o serviço de resultados para aproveitar a lista de parâmetros existente
 import { ResultadoAnaliseService, Parametro } from '../resultado-analise/resultado-analise.service';
+import { ConfirmationService } from '../shared/feedback/confirmation.service';
+import { NotificationService } from '../shared/feedback/notification.service';
+
+function getApiError(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+  const candidate = error as { error?: { message?: unknown; error?: unknown }; message?: unknown };
+  if (typeof candidate.error?.message === 'string') return candidate.error.message;
+  if (typeof candidate.error?.error === 'string') return candidate.error.error;
+  if (typeof candidate.message === 'string') return candidate.message;
+  return fallback;
+}
 
 @Component({
   selector: 'app-amostra',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
   templateUrl: './amostra.component.html',
   styleUrls: ['./amostra.component.css']
 })
@@ -29,9 +42,11 @@ export class AmostraComponent implements OnInit {
   mostrarModalCadastro: boolean = false;
 
   constructor(
-    private amostraService: AmostraService,
-    private resultadoService: ResultadoAnaliseService,
-    private fb: FormBuilder
+    private readonly amostraService: AmostraService,
+    private readonly resultadoService: ResultadoAnaliseService,
+    private readonly fb: FormBuilder,
+    private readonly notifications: NotificationService,
+    private readonly confirmations: ConfirmationService
   ) {
     this.amostraForm = this.createForm();
   }
@@ -76,23 +91,22 @@ export class AmostraComponent implements OnInit {
 
   loadAllData(): void {
     this.loading = true;
-    Promise.all([
-      this.amostraService.findAll().toPromise(),
-      this.amostraService.getMatrizes().toPromise(),
-      this.amostraService.getUsuarios().toPromise(),
-      this.resultadoService.getParametros().toPromise()
-    ]).then(([resAmostras, resMatrizes, resUsuarios, resParametros]) => {
-
-      this.amostras = resAmostras?.data || [];
-      this.matrizes = resMatrizes?.data || [];
-      this.usuarios = resUsuarios?.data || [];
-      this.parametros = resParametros?.data || [];
-
-      this.loading = false;
-    }).catch(err => {
-      console.error('Erro ao carregar dados:', err);
-      alert('Erro ao carregar dados do servidor.');
-      this.loading = false;
+    forkJoin({
+      amostras: this.amostraService.findAll(),
+      matrizes: this.amostraService.getMatrizes(),
+      usuarios: this.amostraService.getUsuarios(),
+      parametros: this.resultadoService.getParametros(),
+    }).pipe(finalize(() => (this.loading = false))).subscribe({
+      next: ({ amostras, matrizes, usuarios, parametros }) => {
+        this.amostras = amostras.data || [];
+        this.matrizes = matrizes.data || [];
+        this.usuarios = usuarios.data || [];
+        this.parametros = parametros.data || [];
+      },
+      error: (error) => {
+        console.error('Erro ao carregar dados:', error);
+        this.notifications.error('Erro ao carregar dados do servidor.');
+      },
     });
   }
 
@@ -120,7 +134,9 @@ export class AmostraComponent implements OnInit {
         matriz_id: Number(formData.matriz_id),
         usuario_id: formData.usuario_id,
         data_coleta: isoDate,
-        parametros_ids: formData.parametros_ids ? formData.parametros_ids.map((id: any) => Number(id)) : []
+        parametros_ids: formData.parametros_ids
+          ? formData.parametros_ids.map((id: number | string) => Number(id))
+          : []
       };
 
       let request;
@@ -132,20 +148,19 @@ export class AmostraComponent implements OnInit {
 
       request.subscribe({
         next: () => {
-          alert(this.isEditing ? 'Atualizado!' : 'Cadastrado!');
+          this.notifications.success(this.isEditing ? 'Amostra atualizada.' : 'Amostra cadastrada.');
           this.fecharModalCadastro();
           this.loadAmostras();
         },
         error: (err) => {
           console.error(err);
-          const msg = err.error?.message || err.message || 'Erro desconhecido';
-          alert(`Erro: ${msg}`);
+          this.notifications.error(getApiError(err, 'Não foi possível salvar a amostra.'));
           this.loading = false;
         }
       });
     } else {
       this.amostraForm.markAllAsTouched();
-      alert('Verifique os campos obrigatórios.');
+      this.notifications.warning('Verifique os campos obrigatórios.');
     }
   }
 
@@ -155,7 +170,6 @@ export class AmostraComponent implements OnInit {
 
     let dataFormatada = '';
     if (item.data_coleta) {
-      const dateObj = new Date(item.data_coleta);
       const isoParts = item.data_coleta.toString().split('T')[0].split('-');
       dataFormatada = `${isoParts[2]}/${isoParts[1]}/${isoParts[0]}`;
     }
@@ -187,21 +201,26 @@ export class AmostraComponent implements OnInit {
     this.mostrarModalCadastro = true;
   }
 
-  delete(id: number): void {
-    if (confirm('Tem certeza que deseja excluir esta amostra?')) {
-      this.loading = true;
-      this.amostraService.delete(id).subscribe({
-        next: () => {
-          alert('Excluído com sucesso!');
-          this.loadAmostras();
-        },
-        error: (err) => {
-          const msg = err.error?.message || 'Erro ao excluir';
-          alert(msg);
-          this.loading = false;
-        }
-      });
-    }
+  async delete(id: number): Promise<void> {
+    const confirmed = await this.confirmations.confirm({
+      title: 'Arquivar amostra',
+      message: 'A amostra deixará as listas ativas, mas todo o histórico será preservado para auditoria.',
+      confirmLabel: 'Arquivar',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.loading = true;
+    this.amostraService.delete(id).subscribe({
+      next: () => {
+        this.notifications.success('Amostra arquivada com sucesso.');
+        this.loadAmostras();
+      },
+      error: (error) => {
+        this.notifications.error(getApiError(error, 'Não foi possível arquivar a amostra.'));
+        this.loading = false;
+      }
+    });
   }
 
   resetForm(): void {
@@ -243,7 +262,7 @@ export class AmostraComponent implements OnInit {
       },
       error: (err) => {
         console.error(err);
-        alert('Erro ao carregar detalhes da amostra.');
+        this.notifications.error('Erro ao carregar detalhes da amostra.');
         this.loading = false;
       }
     });

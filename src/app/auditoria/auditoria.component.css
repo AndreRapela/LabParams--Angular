@@ -1,0 +1,274 @@
+:host {
+  display: block;
+}
+
+.audit-page {
+  width: min(100% - 2rem, 1400px);
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.page-header,
+.filter-bar,
+.pagination {
+  display: flex;
+  align-items: center;
+}
+
+.page-header {
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.4rem;
+}
+
+.eyebrow {
+  color: var(--primary-color);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0.25rem 0;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  letter-spacing: -0.035em;
+}
+
+.page-header p,
+.empty-state p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.total-card {
+  min-width: 7rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.total-card strong,
+.total-card span {
+  display: block;
+}
+
+.total-card strong {
+  font-size: 1.45rem;
+}
+
+.total-card span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.filter-bar {
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.filter-bar label {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+select,
+button {
+  min-height: 2.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+select {
+  min-width: 13rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  background: #fff;
+}
+
+button {
+  padding: 0.5rem 0.85rem;
+  color: var(--primary-dark);
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.audit-card {
+  min-height: 13rem;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.loading-state,
+.empty-state {
+  min-height: 13rem;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.empty-state i {
+  color: #91a2b5;
+  font-size: 2rem;
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+th,
+td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e7edf3;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: #516277;
+  background: #f7f9fb;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+td small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+}
+
+.date-cell {
+  white-space: nowrap;
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  color: #0f5e45;
+  background: #dff6ed;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.action-badge[data-action='ARCHIVE'] {
+  color: #8f2e36;
+  background: #fdebed;
+}
+
+.action-badge[data-action='UPDATE'],
+.action-badge[data-action='ROLE_CHANGE'] {
+  color: #7b5208;
+  background: #fff3d8;
+}
+
+details {
+  min-width: 6.5rem;
+}
+
+summary {
+  color: var(--primary-color);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.change-grid {
+  width: min(68vw, 700px);
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.change-grid h3 {
+  margin: 0 0 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+pre {
+  max-height: 17rem;
+  margin: 0;
+  overflow: auto;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  color: #dceafb;
+  background: #172233;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.feedback.error {
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #f1c3c7;
+  border-radius: var(--radius-sm);
+  color: #a42b35;
+  background: #fff0f1;
+}
+
+.pagination {
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+@media (max-width: 680px) {
+  .audit-page {
+    width: min(100% - 1rem, 1400px);
+    padding-top: 1rem;
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .total-card {
+    min-width: 5.7rem;
+  }
+
+  .filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  select {
+    width: 100%;
+  }
+}

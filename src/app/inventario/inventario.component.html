@@ -1,0 +1,568 @@
+<main class="module-page" aria-labelledby="inventory-title">
+  <header class="page-heading">
+    <div>
+      <span class="eyebrow">Materiais e rastreabilidade</span>
+      <h1 id="inventory-title">Inventário laboratorial</h1>
+      <p>
+        Controle lotes, validade, disponibilidade e cada movimentação de
+        estoque.
+      </p>
+    </div>
+    <div class="metric-strip" aria-label="Resumo do inventário">
+      <div class="metric">
+        <strong>{{ total }}</strong
+        ><span>insumos</span>
+      </div>
+      <div class="metric">
+        <strong>{{ lowStockCount }}</strong
+        ><span>estoque baixo na página</span>
+      </div>
+      <div class="metric">
+        <strong>{{ expiringCount }}</strong
+        ><span>vencendo na página</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="Filtros do inventário">
+    <input
+      class="search-field"
+      type="search"
+      [(ngModel)]="search"
+      (keyup.enter)="load(1)"
+      placeholder="Buscar por código ou nome"
+      aria-label="Buscar insumo"
+    />
+    <label class="checkbox-field">
+      <input type="checkbox" [(ngModel)]="lowStockOnly" (change)="load(1)" />
+      Somente estoque baixo
+    </label>
+    <button
+      class="button secondary"
+      type="button"
+      (click)="load(1)"
+      [disabled]="loading"
+    >
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Buscar
+    </button>
+    <button
+      *ngIf="canOperate"
+      class="button"
+      type="button"
+      aria-controls="new-item-panel"
+      [attr.aria-expanded]="showCreate"
+      (click)="showCreate = !showCreate"
+    >
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo insumo
+    </button>
+  </section>
+
+  <section
+    *ngIf="showCreate"
+    id="new-item-panel"
+    class="panel"
+    aria-labelledby="new-item-title"
+  >
+    <div class="card-heading">
+      <h2 id="new-item-title">Cadastrar insumo</h2>
+      <button
+        class="button secondary small"
+        type="button"
+        (click)="showCreate = false"
+      >
+        Fechar
+      </button>
+    </div>
+    <form #itemForm="ngForm" class="form-grid" (ngSubmit)="saveItem()">
+      <label
+        >Código
+        <input
+          name="codigo"
+          [(ngModel)]="newItem.codigo"
+          required
+          maxlength="80"
+        />
+      </label>
+      <label class="span-2"
+        >Nome
+        <input
+          name="nome"
+          [(ngModel)]="newItem.nome"
+          required
+          maxlength="200"
+        />
+      </label>
+      <label
+        >Tipo
+        <select name="tipo" [(ngModel)]="newItem.tipo">
+          <option value="REAGENTE">Reagente</option>
+          <option value="PADRAO">Padrão</option>
+          <option value="CONSUMIVEL">Consumível</option>
+          <option value="OUTRO">Outro</option>
+        </select>
+      </label>
+      <label
+        >Unidade
+        <input
+          name="unidade"
+          [(ngModel)]="newItem.unidade_medida"
+          required
+          maxlength="30"
+          placeholder="mL, g, un..."
+        />
+      </label>
+      <label
+        >Estoque mínimo
+        <input
+          name="minimo"
+          type="number"
+          min="0"
+          step="any"
+          [(ngModel)]="newItem.estoque_minimo"
+          required
+        />
+      </label>
+      <label
+        >Fabricante
+        <input
+          name="fabricante"
+          [(ngModel)]="newItem.fabricante"
+          maxlength="200"
+        />
+      </label>
+      <label
+        >Armazenamento
+        <input
+          name="armazenamento"
+          [(ngModel)]="newItem.condicao_armazenamento"
+          maxlength="300"
+          placeholder="2–8 °C, ao abrigo da luz..."
+        />
+      </label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="itemForm.invalid || saving"
+        >
+          {{ saving ? "Salvando…" : "Cadastrar insumo" }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="data-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Carregando
+      inventário…
+    </div>
+    <div *ngIf="!loading && !items.length" class="empty-state">
+      <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+      <h2>Nenhum insumo encontrado</h2>
+      <p>Altere os filtros ou cadastre o primeiro item do estoque.</p>
+    </div>
+    <div *ngIf="!loading && items.length" class="table-scroll">
+      <table>
+        <caption class="visually-hidden">
+          Insumos encontrados no inventário
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Insumo</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Disponível</th>
+            <th scope="col">Mínimo</th>
+            <th scope="col">Lotes</th>
+            <th scope="col">Situação</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let item of items; trackBy: trackById"
+            [class.selected]="selected?.id === item.id"
+          >
+            <td>
+              <strong>{{ item.nome }}</strong
+              ><small
+                >{{ item.codigo }} ·
+                {{ item.fabricante || "Fabricante não informado" }}</small
+              >
+            </td>
+            <td>{{ item.tipo }}</td>
+            <td>
+              <strong
+                >{{ stock(item.estoque_disponivel) }}
+                {{ item.unidade_medida }}</strong
+              ><small>Total físico: {{ stock(item.estoque_total) }}</small>
+            </td>
+            <td>{{ stock(item.estoque_minimo) }} {{ item.unidade_medida }}</td>
+            <td>
+              <span *ngIf="item.lotes_vencidos" class="badge danger"
+                >{{ item.lotes_vencidos }} vencido(s)</span
+              ><span
+                *ngIf="!item.lotes_vencidos && item.lotes_vencendo"
+                class="badge warning"
+                >{{ item.lotes_vencendo }} vencendo</span
+              ><span
+                *ngIf="!item.lotes_vencidos && !item.lotes_vencendo"
+                class="muted"
+                >Sem alerta</span
+              >
+            </td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="item.abaixo_estoque_minimo ? 'danger' : 'success'"
+                >{{
+                  item.abaixo_estoque_minimo ? "Repor estoque" : "Adequado"
+                }}</span
+              >
+            </td>
+            <td>
+              <button
+                class="button secondary small"
+                type="button"
+                (click)="select(item)"
+                [attr.aria-label]="'Abrir ficha do insumo ' + item.nome"
+              >
+                Abrir
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav
+    *ngIf="totalPages > 1"
+    class="pagination"
+    aria-label="Paginação do inventário"
+  >
+    <button
+      class="button secondary small"
+      type="button"
+      (click)="load(page - 1)"
+      [disabled]="page <= 1 || loading"
+    >
+      Anterior
+    </button>
+    <span>Página {{ page }} de {{ totalPages }}</span>
+    <button
+      class="button secondary small"
+      type="button"
+      (click)="load(page + 1)"
+      [disabled]="page >= totalPages || loading"
+    >
+      Próxima
+    </button>
+  </nav>
+
+  <section *ngIf="selected" class="drawer" aria-labelledby="item-detail-title">
+    <div class="drawer-header">
+      <div>
+        <span class="eyebrow">Ficha do insumo</span>
+        <h2 id="item-detail-title">{{ selected.nome }}</h2>
+        <p>
+          {{ selected.codigo }} ·
+          {{
+            selected.condicao_armazenamento ||
+              "Sem condição especial registrada"
+          }}
+        </p>
+      </div>
+      <div class="inline-actions">
+        <button
+          *ngIf="canOperate"
+          class="button small"
+          type="button"
+          aria-controls="lot-receipt-form"
+          [attr.aria-expanded]="showLotForm"
+          (click)="showLotForm = !showLotForm"
+        >
+          <i class="fa-solid fa-box" aria-hidden="true"></i> Receber lote
+        </button>
+        <button
+          class="button secondary small"
+          type="button"
+          (click)="closeDetail()"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="detailLoading" class="loading-state" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Atualizando
+      ficha…
+    </div>
+    <ng-container *ngIf="!detailLoading">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span>Estoque disponível</span
+          ><strong
+            >{{ stock(selected.estoque_disponivel) }}
+            {{ selected.unidade_medida }}</strong
+          >
+        </div>
+        <div class="detail-item">
+          <span>Estoque mínimo</span
+          ><strong
+            >{{ stock(selected.estoque_minimo) }}
+            {{ selected.unidade_medida }}</strong
+          >
+        </div>
+        <div class="detail-item">
+          <span>Fabricante</span
+          ><strong>{{ selected.fabricante || "Não informado" }}</strong>
+        </div>
+      </div>
+
+      <form
+        *ngIf="showLotForm"
+        id="lot-receipt-form"
+        #lotForm="ngForm"
+        class="panel form-grid"
+        aria-label="Receber novo lote"
+        (ngSubmit)="saveLot()"
+      >
+        <label
+          >Número do lote<input
+            name="numeroLote"
+            [(ngModel)]="newLot.numero_lote"
+            required
+            maxlength="120"
+        /></label>
+        <label
+          >Quantidade recebida<input
+            name="quantidadeInicial"
+            type="number"
+            min="0.000001"
+            step="any"
+            [(ngModel)]="newLot.quantidade_inicial"
+            required
+        /></label>
+        <label
+          >Recebimento<input
+            name="recebimento"
+            type="date"
+            [(ngModel)]="newLot.data_recebimento"
+            required
+        /></label>
+        <label
+          >Validade<input
+            name="validade"
+            type="date"
+            [(ngModel)]="newLot.validade"
+        /></label>
+        <label
+          >Fornecedor<input name="fornecedor" [(ngModel)]="newLot.fornecedor"
+        /></label>
+        <label
+          >Local<input name="local" [(ngModel)]="newLot.local_armazenamento"
+        /></label>
+        <label
+          >Status<select name="status" [(ngModel)]="newLot.status">
+            <option value="DISPONIVEL">Disponível</option>
+            <option value="QUARENTENA">Quarentena</option>
+            <option value="BLOQUEADO">Bloqueado</option>
+          </select></label
+        >
+        <label
+          >Certificado (URL)<input
+            name="certificado"
+            type="url"
+            [(ngModel)]="newLot.certificado_url"
+        /></label>
+        <div class="form-actions">
+          <button
+            class="button"
+            type="submit"
+            [disabled]="lotForm.invalid || saving"
+          >
+            Registrar recebimento
+          </button>
+        </div>
+      </form>
+
+      <div class="subsection">
+        <h3>Lotes</h3>
+        <div *ngIf="!selected.lotes?.length" class="alert-box">
+          Nenhum lote registrado para este insumo.
+        </div>
+        <div *ngIf="selected.lotes?.length" class="table-scroll">
+          <table>
+            <caption class="visually-hidden">
+              Lotes do insumo selecionado
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Lote</th>
+                <th scope="col">Validade</th>
+                <th scope="col">Saldo</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lot of selected.lotes; trackBy: trackById">
+                <td>
+                  <strong>{{ lot.numero_lote }}</strong
+                  ><small>{{
+                    lot.fornecedor || "Fornecedor não informado"
+                  }}</small>
+                </td>
+                <td>{{ date(lot.validade) }}</td>
+                <td>
+                  {{ stock(lot.quantidade_atual) }}
+                  {{ selected.unidade_medida }}
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [ngClass]="
+                      lot.situacao_validade === 'VENCIDO'
+                        ? 'danger'
+                        : lot.situacao_validade === 'VENCENDO'
+                          ? 'warning'
+                          : lot.status === 'DISPONIVEL'
+                            ? 'success'
+                            : 'neutral'
+                    "
+                    >{{
+                      lot.situacao_validade === "VENCIDO"
+                        ? "Vencido"
+                        : lot.situacao_validade === "VENCENDO"
+                          ? "Vencendo"
+                          : lot.status
+                    }}</span
+                  >
+                </td>
+                <td>
+                  <button
+                    class="button secondary small"
+                    type="button"
+                    (click)="chooseLot(lot)"
+                    [attr.aria-label]="
+                      (canOperate
+                        ? 'Movimentar lote '
+                        : 'Ver histórico do lote ') + lot.numero_lote
+                    "
+                  >
+                    {{ canOperate ? "Movimentar" : "Ver histórico" }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="selectedLot && showMovementForm" class="subsection">
+        <h3>
+          {{ canOperate ? "Movimentar" : "Histórico do" }} lote
+          {{ selectedLot.numero_lote }}
+        </h3>
+        <form
+          *ngIf="canOperate"
+          #movementForm="ngForm"
+          class="form-grid"
+          aria-label="Registrar movimentação de estoque"
+          (ngSubmit)="saveMovement()"
+        >
+          <label
+            >Operação<select name="movimentoTipo" [(ngModel)]="movement.tipo">
+              <option value="ENTRADA">Entrada</option>
+              <option value="SAIDA">Saída/consumo</option>
+              <option *ngIf="isManager" value="AJUSTE_POSITIVO">
+                Ajuste positivo
+              </option>
+              <option *ngIf="isManager" value="AJUSTE_NEGATIVO">
+                Ajuste negativo
+              </option>
+            </select></label
+          >
+          <label
+            >Quantidade<input
+              name="movimentoQuantidade"
+              type="number"
+              min="0.000001"
+              step="any"
+              [(ngModel)]="movement.quantidade"
+              required
+          /></label>
+          <label class="span-2"
+            >Motivo<input
+              name="movimentoMotivo"
+              [(ngModel)]="movement.motivo"
+              minlength="3"
+              maxlength="500"
+              required
+          /></label>
+          <label class="span-2"
+            >Referência<input
+              name="movimentoReferencia"
+              [(ngModel)]="movement.referencia"
+              placeholder="Amostra, pedido ou documento"
+          /></label>
+          <div class="form-actions">
+            <button
+              class="button"
+              type="submit"
+              [disabled]="movementForm.invalid || saving || !canOperate"
+            >
+              Registrar movimentação
+            </button>
+          </div>
+        </form>
+        <div *ngIf="movementLoading" class="loading-inline" role="status">
+          <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+          Carregando histórico…
+        </div>
+        <div
+          *ngIf="!movementLoading && movements.length"
+          class="table-scroll movement-history"
+        >
+          <table>
+            <caption class="visually-hidden">
+              Histórico de movimentações do lote
+              {{
+                selectedLot.numero_lote
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Operação</th>
+                <th scope="col">Quantidade</th>
+                <th scope="col">Saldo</th>
+                <th scope="col">Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of movements; trackBy: trackById">
+                <td>{{ timestamp(entry.created_at) }}</td>
+                <td>{{ movementLabel(entry.tipo) }}</td>
+                <td>{{ stock(entry.quantidade) }}</td>
+                <td>
+                  {{ stock(entry.saldo_anterior) }} →
+                  {{ stock(entry.saldo_posterior) }}
+                </td>
+                <td>
+                  {{ entry.motivo
+                  }}<small *ngIf="entry.realizado_por_nome">{{
+                    entry.realizado_por_nome
+                  }}</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p *ngIf="!movementLoading && !movements.length" class="muted">
+          Nenhuma movimentação registrada neste lote.
+        </p>
+      </div>
+    </ng-container>
+  </section>
+</main>

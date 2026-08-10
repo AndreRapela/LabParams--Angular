@@ -1,0 +1,35 @@
+.toolbar {
+  justify-content: flex-start;
+}
+
+.toolbar .search-field {
+  flex: 1;
+}
+
+.toolbar .btn-pilot {
+  margin-left: auto;
+}
+
+.active-filter,
+.active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3e5269;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.active-filter input,
+.active-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary-color);
+}
+
+@media (max-width: 820px) {
+  .toolbar .btn-pilot {
+    margin-left: 0;
+  }
+}

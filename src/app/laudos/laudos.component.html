@@ -1,0 +1,304 @@
+<main class="pilot-page" aria-labelledby="laudos-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Documentos e rastreabilidade</p>
+      <h1 id="laudos-title">Laudos</h1>
+      <p>Consulte versões emitidas e prepare documentos para impressão.</p>
+    </div>
+    <div class="summary-grid" aria-label="Resumo dos laudos">
+      <div class="summary-card">
+        <strong>{{ laudos.length }}</strong
+        ><span>Versões</span>
+      </div>
+      <div class="summary-card">
+        <strong>{{ totalAmostrasComLaudo }}</strong
+        ><span>Amostras com laudo</span>
+      </div>
+    </div>
+  </header>
+  <div *ngIf="error && !generatorOpen" class="feedback error" role="alert">
+    {{ error }}
+  </div>
+  <section class="toolbar" aria-label="Ferramentas de laudos">
+    <label class="search-field"
+      ><span class="sr-only">Buscar laudo</span
+      ><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i
+      ><input
+        type="search"
+        [formControl]="buscaControl"
+        placeholder="Número do laudo, amostra ou cliente" /></label
+    ><button
+      *ngIf="canGenerate"
+      type="button"
+      class="btn-pilot primary"
+      (click)="abrirGerador()"
+      [disabled]="!amostrasElegiveis.length"
+      [attr.title]="
+        amostrasElegiveis.length
+          ? null
+          : 'Conclua uma amostra com todos os resultados publicados antes de emitir o laudo'
+      "
+    >
+      <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i> Gerar
+      versão
+    </button>
+  </section>
+  <p
+    *ngIf="canGenerate && !loading && !amostrasElegiveis.length"
+    class="feedback info eligibility-note"
+    role="status"
+  >
+    Para emitir um laudo, conclua uma amostra depois de publicar exatamente um
+    resultado para cada parâmetro previsto.
+  </p>
+  <section class="pilot-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state" role="status">
+      <span class="spinner-border text-primary" aria-hidden="true"></span
+      >Carregando laudos…
+    </div>
+    <div *ngIf="!loading && !laudosFiltrados.length" class="empty-state">
+      <i class="fa-regular fa-file-lines" aria-hidden="true"></i>
+      <h2>
+        {{
+          laudos.length
+            ? "Nenhum laudo corresponde aos filtros"
+            : "Nenhum laudo emitido"
+        }}
+      </h2>
+      <p>
+        Gere uma versão quando os resultados da amostra estiverem publicados.
+      </p>
+    </div>
+    <div *ngIf="!loading && laudosFiltrados.length" class="table-wrap">
+      <table class="pilot-table">
+        <caption class="sr-only">
+          Versões de laudos
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Laudo</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Amostra</th>
+            <th scope="col">Emissão</th>
+            <th scope="col">Responsável</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let laudo of laudosFiltrados; trackBy: trackById">
+            <td data-label="Laudo">
+              <strong>{{ laudo.numero }}</strong
+              ><small
+                >Versão {{ laudo.versao }} ·
+                {{ laudo.total_resultados || 0 }} resultado(s)</small
+              >
+            </td>
+            <td data-label="Cliente">{{ laudo.cliente_nome || "—" }}</td>
+            <td data-label="Amostra">
+              <strong>{{
+                laudo.numero_da_amostra ||
+                  laudo.codigo_amostra ||
+                  "Amostra " + laudo.amostra_id
+              }}</strong>
+            </td>
+            <td data-label="Emissão">{{ formatDate(laudo.emitido_em) }}</td>
+            <td data-label="Responsável">
+              {{ laudo.emitido_por_nome || "Usuário autenticado" }}
+            </td>
+            <td data-label="Ação" class="actions-cell">
+              <a class="btn-pilot compact" [routerLink]="['/laudos', laudo.id]"
+                ><i class="fa-solid fa-eye" aria-hidden="true"></i> Consultar</a
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div
+  *ngIf="generatorOpen"
+  class="dialog-backdrop"
+  role="presentation"
+  (click)="fecharGerador()"
+>
+  <section
+    #generatorPanel
+    class="dialog-panel generator-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="generator-title"
+    aria-describedby="generator-description"
+    tabindex="-1"
+    (keydown)="manterFocoNoGerador($event)"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="eyebrow">Snapshot versionado</p>
+        <h2 id="generator-title">Emitir laudo</h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        (click)="fecharGerador()"
+        [disabled]="saving"
+        aria-label="Fechar"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form
+      class="pilot-form"
+      [formGroup]="form"
+      (ngSubmit)="gerarVersao()"
+      novalidate
+    >
+      <div *ngIf="error" class="feedback error" role="alert">{{ error }}</div>
+      <div id="generator-description" class="feedback info">
+        <strong>Documento imutável:</strong> a versão preservará os dados atuais
+        da amostra e dos resultados publicados. A emissão exige a confirmação da
+        sua senha.
+      </div>
+      <div class="field">
+        <label for="laudo-amostra">Amostra</label
+        ><select
+          id="laudo-amostra"
+          formControlName="amostra_id"
+          aria-describedby="laudo-amostra-hint laudo-amostra-error"
+          [attr.aria-invalid]="
+            form.controls.amostra_id.invalid && form.controls.amostra_id.touched
+          "
+        >
+          <option [ngValue]="null">Selecione</option>
+          <option
+            *ngFor="let amostra of amostrasElegiveis; trackBy: trackByAmostraId"
+            [ngValue]="amostra.id"
+          >
+            {{ amostra.numero_da_amostra }} — {{ amostra.codigo_amostra }} ({{
+              rotuloVersaoAmostra(amostra.id)
+            }})
+          </option></select
+        ><small id="laudo-amostra-hint" class="field-hint"
+          >A versão é calculada pelo histórico da amostra.</small
+        ><small
+          *ngIf="
+            form.controls.amostra_id.invalid && form.controls.amostra_id.touched
+          "
+          id="laudo-amostra-error"
+          class="field-error"
+          >Selecione a amostra.</small
+        >
+      </div>
+      <div
+        *ngIf="form.controls.amostra_id.value !== null"
+        class="version-context"
+        [class.revision]="revisaoSelecionada"
+        role="status"
+        aria-live="polite"
+      >
+        <i
+          class="fa-solid"
+          [class.fa-file-circle-check]="!revisaoSelecionada"
+          [class.fa-clock-rotate-left]="revisaoSelecionada"
+          aria-hidden="true"
+        ></i>
+        <div>
+          <strong>{{
+            revisaoSelecionada
+              ? "Nova revisão — versão " + proximaVersaoSelecionada
+              : "Primeira emissão — versão 1"
+          }}</strong>
+          <span *ngIf="revisaoSelecionada"
+            >A versão anterior será preservada e o motivo ficará registrado na
+            trilha de auditoria.</span
+          ><span *ngIf="!revisaoSelecionada"
+            >Este será o primeiro registro imutável desta amostra.</span
+          >
+        </div>
+      </div>
+      <div *ngIf="revisaoSelecionada" class="field">
+        <label for="laudo-motivo">Motivo da revisão</label
+        ><textarea
+          id="laudo-motivo"
+          formControlName="motivo"
+          rows="3"
+          maxlength="1000"
+          aria-required="true"
+          aria-describedby="laudo-motivo-hint laudo-motivo-error"
+          [attr.aria-invalid]="
+            form.controls.motivo.invalid && form.controls.motivo.touched
+          "
+        ></textarea
+        ><small id="laudo-motivo-hint" class="field-hint"
+          >Explique por que uma nova versão precisa ser emitida.</small
+        ><small
+          *ngIf="form.controls.motivo.invalid && form.controls.motivo.touched"
+          id="laudo-motivo-error"
+          class="field-error"
+          >Informe um motivo com pelo menos 3 caracteres.</small
+        >
+      </div>
+      <div class="field">
+        <label for="laudo-observacoes"
+          >Observações <span class="optional">(opcional)</span></label
+        ><textarea
+          id="laudo-observacoes"
+          formControlName="observacoes"
+          rows="3"
+          maxlength="1000"
+          aria-describedby="laudo-observacoes-hint"
+        ></textarea
+        ><small id="laudo-observacoes-hint" class="field-hint"
+          >Informação complementar que fará parte desta versão.</small
+        >
+      </div>
+      <div class="field">
+        <label for="laudo-senha">Confirme sua senha</label
+        ><input
+          id="laudo-senha"
+          type="password"
+          formControlName="senha"
+          autocomplete="current-password"
+          maxlength="200"
+          aria-required="true"
+          aria-describedby="laudo-senha-hint laudo-senha-error"
+          [attr.aria-invalid]="
+            form.controls.senha.invalid && form.controls.senha.touched
+          "
+        /><small id="laudo-senha-hint" class="field-hint"
+          >Usada somente para reautenticar esta emissão.</small
+        ><small
+          *ngIf="form.controls.senha.invalid && form.controls.senha.touched"
+          id="laudo-senha-error"
+          class="field-error"
+          >Informe sua senha para emitir o laudo.</small
+        >
+      </div>
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="btn-pilot"
+          (click)="fecharGerador()"
+          [disabled]="saving"
+        >
+          Cancelar</button
+        ><button type="submit" class="btn-pilot primary" [disabled]="saving">
+          <span
+            *ngIf="saving"
+            class="spinner-border spinner-border-sm"
+            aria-hidden="true"
+          ></span
+          >{{
+            saving
+              ? "Emitindo…"
+              : revisaoSelecionada
+                ? "Emitir revisão v" + proximaVersaoSelecionada
+                : "Emitir primeira versão"
+          }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

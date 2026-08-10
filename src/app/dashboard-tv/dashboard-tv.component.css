@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-
 /* =========================================
    BASE / LAYOUT
 ========================================= */
@@ -86,6 +84,7 @@
 .status-alerta        { background:#FFFBEB; color:#F59E0B; border:1px solid #F59E0B; }
 .status-critico       { background:#FEF2F2; color:#EF4444; border:1px solid #EF4444; }
 .status-nao-conforme  { background:#F3F4F6; color:#6B7280; border:1px solid #6B7280; }
+.status-informativo   { background:#EFF6FF; color:#2563EB; border:1px solid #60A5FA; }
 
 /* =========================================
    INFO DO PARÂMETRO
@@ -139,6 +138,7 @@
 .progress-bar-alerta        { background:#FBBF24; }
 .progress-bar-critico       { background:#F87171; }
 .progress-bar-nao-conforme  { background:#9CA3AF; }
+.progress-bar-informativo   { background:#60A5FA; }
 
 .parameter-update {
   font-size: 0.75rem;

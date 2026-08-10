@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "ng build --configuration production --output-path dist/sysmlab",
-  "outputDirectory": "dist/sysmlab",
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist/sysmlab/browser",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

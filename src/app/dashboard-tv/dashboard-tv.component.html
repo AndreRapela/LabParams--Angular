@@ -14,7 +14,7 @@
       </div>
 
       <!-- Limites -->
-      <p class="parameter-limits">Limite: {{ param.limite_minimo }} - {{ param.limite_maximo }} {{ param.unit }}</p>
+      <p class="parameter-limits">Referência: {{ getLimitLabel(param) }}</p>
 
       <!-- Valor -->
       <div class="parameter-value-container">
@@ -23,7 +23,7 @@
       </div>
 
       <!-- Barra de progresso -->
-      <div class="progress-bar-container">
+      <div class="progress-bar-container" *ngIf="param.tipo_limite !== 'ausencia' && param.tipo_limite !== 'informativo'">
         <div class="progress-track">
           <div class="progress-bar-fill"
                [ngClass]="getProgressBarClass(param.status)"

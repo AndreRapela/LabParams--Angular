@@ -1,0 +1,602 @@
+<main class="module-page" aria-labelledby="quality-title">
+  <header class="page-heading">
+    <div>
+      <span class="eyebrow">Sistema de gestão da qualidade</span>
+      <h1 id="quality-title">Não conformidades e CAPA</h1>
+      <p>Investigue desvios, trate causas e comprove a eficácia das ações.</p>
+    </div>
+    <div class="metric-strip" aria-label="Indicadores da qualidade">
+      <div class="metric">
+        <strong>{{ summary.ocorrencias_abertas }}</strong
+        ><span>abertas</span>
+      </div>
+      <div class="metric">
+        <strong>{{ summary.criticas_abertas }}</strong
+        ><span>críticas</span>
+      </div>
+      <div class="metric">
+        <strong>{{
+          summary.ocorrencias_vencidas + summary.acoes_capa_vencidas
+        }}</strong
+        ><span>vencidas</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="Filtros da qualidade">
+    <input
+      class="search-field"
+      type="search"
+      [(ngModel)]="search"
+      (keyup.enter)="load(1)"
+      placeholder="Código, título ou descrição"
+      aria-label="Buscar ocorrência"
+    />
+    <select
+      [(ngModel)]="status"
+      (change)="load(1)"
+      aria-label="Filtrar por status"
+    >
+      <option value="">Todos os status</option>
+      <option *ngFor="let item of statuses" [value]="item">
+        {{ statusLabel(item) }}
+      </option>
+    </select>
+    <select [(ngModel)]="type" (change)="load(1)" aria-label="Filtrar por tipo">
+      <option value="">Todos os tipos</option>
+      <option value="NAO_CONFORMIDADE">Não conformidade</option>
+      <option value="DESVIO">Desvio</option>
+    </select>
+    <label class="checkbox-field"
+      ><input type="checkbox" [(ngModel)]="overdueOnly" (change)="load(1)" />
+      Somente vencidas</label
+    >
+    <button
+      *ngIf="canOperate"
+      class="button"
+      type="button"
+      aria-controls="new-occurrence-panel"
+      [attr.aria-expanded]="showCreate"
+      (click)="showCreate = !showCreate"
+    >
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Nova ocorrência
+    </button>
+  </section>
+
+  <section
+    *ngIf="showCreate"
+    id="new-occurrence-panel"
+    class="panel"
+    aria-labelledby="new-occurrence-title"
+  >
+    <div class="card-heading">
+      <h2 id="new-occurrence-title">Registrar ocorrência</h2>
+      <button
+        class="button secondary small"
+        type="button"
+        (click)="showCreate = false"
+      >
+        Fechar
+      </button>
+    </div>
+    <form
+      #occurrenceForm="ngForm"
+      class="form-grid"
+      (ngSubmit)="saveOccurrence()"
+    >
+      <label
+        >Tipo<select name="occurrenceType" [(ngModel)]="newOccurrence.tipo">
+          <option value="NAO_CONFORMIDADE">Não conformidade</option>
+          <option value="DESVIO">Desvio</option>
+        </select></label
+      >
+      <label
+        >Gravidade<select name="severity" [(ngModel)]="newOccurrence.gravidade">
+          <option value="BAIXA">Baixa</option>
+          <option value="MEDIA">Média</option>
+          <option value="ALTA">Alta</option>
+          <option value="CRITICA">Crítica</option>
+        </select></label
+      >
+      <label
+        >Prazo<input
+          name="deadline"
+          type="date"
+          [(ngModel)]="newOccurrence.prazo"
+      /></label>
+      <label
+        >Responsável<select
+          name="responsible"
+          [(ngModel)]="newOccurrence.responsavel_id"
+        >
+          <option value="">A definir</option>
+          <option *ngFor="let user of responsibles" [value]="user.id">
+            {{ user.nome }} · {{ user.perfil }}
+          </option>
+        </select></label
+      >
+      <label class="span-2"
+        >Título<input
+          name="title"
+          [(ngModel)]="newOccurrence.titulo"
+          minlength="3"
+          maxlength="200"
+          required
+      /></label>
+      <label class="span-2"
+        >Origem<input
+          name="origin"
+          [(ngModel)]="newOccurrence.origem"
+          placeholder="Auditoria, reclamação, rotina analítica..."
+      /></label>
+      <label class="span-all"
+        >Descrição<textarea
+          name="description"
+          [(ngModel)]="newOccurrence.descricao"
+          minlength="10"
+          maxlength="5000"
+          required
+        ></textarea>
+      </label>
+      <label class="span-all"
+        >Contenção imediata<textarea
+          name="containment"
+          [(ngModel)]="newOccurrence.contencao"
+          placeholder="Ações tomadas para conter o risco enquanto a investigação ocorre"
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="occurrenceForm.invalid || saving"
+        >
+          {{ saving ? "Registrando…" : "Registrar ocorrência" }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="data-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading && !selected" class="loading-state" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Carregando
+      ocorrências…
+    </div>
+    <div *ngIf="!loading && !occurrences.length" class="empty-state">
+      <i class="fa-solid fa-shield-check" aria-hidden="true"></i>
+      <h2>Nenhuma ocorrência encontrada</h2>
+      <p>Não há registros que correspondam aos filtros.</p>
+    </div>
+    <div *ngIf="occurrences.length" class="table-scroll">
+      <table>
+        <caption class="visually-hidden">
+          Ocorrências da qualidade encontradas
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Ocorrência</th>
+            <th scope="col">Gravidade</th>
+            <th scope="col">Status</th>
+            <th scope="col">Responsável</th>
+            <th scope="col">Prazo</th>
+            <th scope="col">CAPA</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let item of occurrences; trackBy: trackById"
+            [class.selected]="selected?.id === item.id"
+          >
+            <td>
+              <strong>{{ item.codigo }} · {{ item.titulo }}</strong
+              ><small
+                >{{
+                  item.tipo === "NAO_CONFORMIDADE"
+                    ? "Não conformidade"
+                    : "Desvio"
+                }}
+                · {{ item.origem || "Origem não informada" }}</small
+              >
+            </td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="
+                  item.gravidade === 'CRITICA' || item.gravidade === 'ALTA'
+                    ? 'danger'
+                    : item.gravidade === 'MEDIA'
+                      ? 'warning'
+                      : 'neutral'
+                "
+                >{{ item.gravidade }}</span
+              >
+            </td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="
+                  item.status === 'ENCERRADA'
+                    ? 'success'
+                    : item.status === 'CANCELADA'
+                      ? 'neutral'
+                      : 'warning'
+                "
+                >{{ statusLabel(item.status) }}</span
+              >
+            </td>
+            <td>{{ item.responsavel_nome || "A definir" }}</td>
+            <td>
+              <strong [class.overdue]="item.vencida">{{
+                date(item.prazo)
+              }}</strong
+              ><small *ngIf="item.vencida">Prazo vencido</small>
+            </td>
+            <td>
+              {{ item.acoes_pendentes || 0 }} pendente(s)<small
+                >{{ item.total_acoes || 0 }} no total</small
+              >
+            </td>
+            <td>
+              <button
+                class="button secondary small"
+                type="button"
+                (click)="select(item)"
+                [attr.aria-label]="
+                  'Abrir ocorrência ' + item.codigo + ': ' + item.titulo
+                "
+              >
+                Abrir
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav
+    *ngIf="totalPages > 1"
+    class="pagination"
+    aria-label="Paginação das ocorrências"
+  >
+    <button
+      class="button secondary small"
+      type="button"
+      (click)="load(page - 1)"
+      [disabled]="page <= 1 || loading"
+    >
+      Anterior</button
+    ><span>Página {{ page }} de {{ totalPages }}</span
+    ><button
+      class="button secondary small"
+      type="button"
+      (click)="load(page + 1)"
+      [disabled]="page >= totalPages || loading"
+    >
+      Próxima
+    </button>
+  </nav>
+
+  <section
+    *ngIf="selected"
+    class="drawer"
+    aria-labelledby="occurrence-detail-title"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="eyebrow">{{ selected.codigo }}</span>
+        <h2 id="occurrence-detail-title">{{ selected.titulo }}</h2>
+        <p>
+          Aberta por {{ selected.aberta_por_nome }} em
+          {{ timestamp(selected.created_at) }}
+        </p>
+      </div>
+      <div class="inline-actions">
+        <button
+          *ngIf="
+            canOperate &&
+            selected.status !== 'ENCERRADA' &&
+            selected.status !== 'CANCELADA'
+          "
+          class="button small"
+          type="button"
+          aria-controls="capa-create-form"
+          [attr.aria-expanded]="showCapa"
+          [disabled]="detailLoading"
+          (click)="showCapa = !showCapa"
+        >
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i> Nova ação
+          CAPA
+        </button>
+        <button
+          *ngIf="isManager"
+          class="button secondary small"
+          type="button"
+          aria-controls="quality-decision-form"
+          [attr.aria-expanded]="showDecision"
+          [disabled]="detailLoading"
+          (click)="openDecision()"
+        >
+          <i class="fa-solid fa-gavel" aria-hidden="true"></i> Registrar decisão
+        </button>
+        <button
+          class="button secondary small"
+          type="button"
+          (click)="closeDetail()"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+    <div *ngIf="detailLoading" class="loading-inline" role="status">
+      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Atualizando
+      ocorrência…
+    </div>
+    <div *ngIf="selected.vencida" class="alert-box">
+      <strong>Prazo vencido.</strong> Priorize a investigação e registre as
+      decisões tomadas.
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span>Status</span><strong>{{ statusLabel(selected.status) }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Gravidade</span><strong>{{ selected.gravidade }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Responsável</span
+        ><strong>{{ selected.responsavel_nome || "A definir" }}</strong>
+      </div>
+    </div>
+    <div class="narrative-grid">
+      <article>
+        <h3>Descrição</h3>
+        <p>{{ selected.descricao }}</p>
+      </article>
+      <article *ngIf="selected.contencao">
+        <h3>Contenção</h3>
+        <p>{{ selected.contencao }}</p>
+      </article>
+      <article *ngIf="selected.causa_raiz">
+        <h3>Causa raiz</h3>
+        <p>{{ selected.causa_raiz }}</p>
+      </article>
+      <article *ngIf="selected.verificacao_eficacia">
+        <h3>Verificação de eficácia</h3>
+        <p>{{ selected.verificacao_eficacia }}</p>
+      </article>
+    </div>
+
+    <form
+      *ngIf="showCapa"
+      id="capa-create-form"
+      #capaForm="ngForm"
+      class="panel form-grid"
+      aria-label="Cadastrar ação corretiva ou preventiva"
+      (ngSubmit)="saveCapa()"
+    >
+      <label
+        >Tipo<select name="capaType" [(ngModel)]="newCapa.tipo">
+          <option value="CORRETIVA">Corretiva</option>
+          <option value="PREVENTIVA">Preventiva</option>
+        </select></label
+      >
+      <label
+        >Responsável<select
+          name="capaResponsible"
+          [(ngModel)]="newCapa.responsavel_id"
+        >
+          <option value="">A definir</option>
+          <option *ngFor="let user of responsibles" [value]="user.id">
+            {{ user.nome }}
+          </option>
+        </select></label
+      >
+      <label
+        >Prazo<input
+          name="capaDeadline"
+          type="date"
+          [(ngModel)]="newCapa.prazo"
+      /></label>
+      <label class="span-all"
+        >Ação planejada<textarea
+          name="capaDescription"
+          [(ngModel)]="newCapa.descricao"
+          minlength="5"
+          maxlength="2000"
+          required
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button"
+          type="submit"
+          [disabled]="capaForm.invalid || saving"
+        >
+          Adicionar ao plano
+        </button>
+      </div>
+    </form>
+
+    <form
+      *ngIf="showDecision"
+      id="quality-decision-form"
+      #decisionForm="ngForm"
+      class="panel form-grid decision-form"
+      aria-label="Registrar decisão da qualidade"
+      (ngSubmit)="saveDecision()"
+    >
+      <label
+        >Próximo status<select
+          name="decisionStatus"
+          [(ngModel)]="decision.status"
+        >
+          <option *ngFor="let next of allowedTransitions" [value]="next">
+            {{ statusLabel(next) }}
+          </option>
+        </select></label
+      >
+      <label class="span-2"
+        >Decisão / justificativa<input
+          name="decisionText"
+          [(ngModel)]="decision.decisao"
+          minlength="3"
+          maxlength="2000"
+          required
+      /></label>
+      <label
+        *ngIf="decision.status === 'PLANO_ACAO' || selected.causa_raiz"
+        class="span-all"
+        >Causa raiz<textarea
+          name="rootCause"
+          [(ngModel)]="decision.causa_raiz"
+          [required]="decision.status === 'PLANO_ACAO'"
+        ></textarea>
+      </label>
+      <label *ngIf="decision.status === 'ENCERRADA'" class="span-all"
+        >Verificação de eficácia<textarea
+          name="effectiveness"
+          [(ngModel)]="decision.verificacao_eficacia"
+          minlength="3"
+          required
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button secondary"
+          type="button"
+          (click)="showDecision = false"
+        >
+          Voltar</button
+        ><button
+          class="button"
+          type="submit"
+          [disabled]="decisionForm.invalid || saving"
+        >
+          Registrar decisão
+        </button>
+      </div>
+    </form>
+
+    <div class="subsection">
+      <h3>Plano de ações CAPA</h3>
+      <div *ngIf="!detailLoading && !selected.acoes?.length" class="alert-box">
+        Nenhuma ação corretiva ou preventiva registrada.
+      </div>
+      <div *ngIf="!detailLoading && selected.acoes?.length" class="capa-list">
+        <article
+          *ngFor="let action of selected.acoes; trackBy: trackById"
+          class="capa-card"
+          [class.overdue-card]="action.vencida"
+        >
+          <div>
+            <span
+              class="badge"
+              [ngClass]="
+                action.status === 'CONCLUIDA'
+                  ? 'success'
+                  : action.status === 'CANCELADA'
+                    ? 'neutral'
+                    : action.vencida
+                      ? 'danger'
+                      : 'warning'
+              "
+              >{{ statusLabel(action.status) }}</span
+            ><strong>{{ action.tipo }} · {{ action.descricao }}</strong>
+            <p>
+              {{ action.responsavel_nome || "Responsável a definir" }} ·
+              {{ date(action.prazo) }}
+            </p>
+            <small *ngIf="action.evidencia"
+              >Evidência: {{ action.evidencia }}</small
+            >
+          </div>
+          <div
+            *ngIf="
+              canOperate &&
+              action.status !== 'CONCLUIDA' &&
+              action.status !== 'CANCELADA'
+            "
+            class="inline-actions"
+          >
+            <button
+              *ngIf="action.status === 'PENDENTE'"
+              class="button secondary small"
+              type="button"
+              (click)="startAction(action)"
+              [attr.aria-label]="'Iniciar ação CAPA: ' + action.descricao"
+            >
+              Iniciar
+            </button>
+            <button
+              class="button small"
+              type="button"
+              (click)="openAction(action, 'complete')"
+              [attr.aria-label]="'Concluir ação CAPA: ' + action.descricao"
+            >
+              Concluir
+            </button>
+            <button
+              *ngIf="isManager"
+              class="button danger small"
+              type="button"
+              (click)="openAction(action, 'cancel')"
+              [attr.aria-label]="'Cancelar ação CAPA: ' + action.descricao"
+            >
+              Cancelar
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <form
+      *ngIf="selectedAction && actionMode"
+      #actionForm="ngForm"
+      class="panel form-grid action-form"
+      aria-label="Concluir ou cancelar ação CAPA"
+      (ngSubmit)="saveAction()"
+    >
+      <h3 class="span-all">
+        {{
+          actionMode === "complete"
+            ? "Concluir ação com evidência"
+            : "Cancelar ação CAPA"
+        }}
+      </h3>
+      <label *ngIf="actionMode === 'complete'" class="span-all"
+        >Evidência da execução<textarea
+          name="actionEvidence"
+          [(ngModel)]="actionUpdate.evidencia"
+          minlength="3"
+          required
+        ></textarea>
+      </label>
+      <label *ngIf="actionMode === 'cancel'" class="span-all"
+        >Motivo do cancelamento<textarea
+          name="actionCancelReason"
+          [(ngModel)]="actionUpdate.motivo"
+          minlength="3"
+          required
+        ></textarea>
+      </label>
+      <div class="form-actions">
+        <button
+          class="button secondary"
+          type="button"
+          (click)="selectedAction = null; actionMode = null"
+        >
+          Voltar</button
+        ><button
+          class="button"
+          [class.danger]="actionMode === 'cancel'"
+          type="submit"
+          [disabled]="actionForm.invalid || saving"
+        >
+          Confirmar
+        </button>
+      </div>
+    </form>
+  </section>
+</main>

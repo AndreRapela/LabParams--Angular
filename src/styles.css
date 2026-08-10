@@ -328,3 +328,21 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media print {
+  .sysmlab-header,
+  .sysmlab-footer,
+  app-toast-container,
+  app-confirmation-dialog {
+    display: none !important;
+  }
+
+  .router-outlet,
+  .page-container {
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}

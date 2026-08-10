@@ -1,0 +1,161 @@
+:host {
+  display: block;
+}
+
+.verification-page {
+  min-height: calc(100vh - 9rem);
+  padding: clamp(2rem, 7vw, 5rem) 1rem;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at 12% 15%,
+      rgba(35, 141, 215, 0.14),
+      transparent 26rem
+    ),
+    linear-gradient(145deg, #f7fbfe, #edf4fa);
+}
+
+.verification-card {
+  width: min(100%, 610px);
+  padding: clamp(1.4rem, 5vw, 2.5rem);
+  border: 1px solid var(--border-color);
+  border-radius: 1.3rem;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 24px 64px rgba(25, 62, 96, 0.15);
+  text-align: center;
+}
+
+.brand-mark,
+.status-icon {
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+}
+
+.brand-mark {
+  width: 3.2rem;
+  height: 3.2rem;
+  margin-bottom: 1.25rem;
+  border-radius: 1rem;
+  color: #fff;
+  background: linear-gradient(145deg, #258ee0, #145dab);
+}
+
+.status-icon {
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 0.8rem;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--success-color);
+  font-size: 1.35rem;
+}
+
+.invalid .status-icon {
+  background: var(--danger-color);
+}
+
+.eyebrow {
+  color: var(--success-color);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.invalid .eyebrow {
+  color: var(--danger-color);
+}
+
+h1 {
+  margin: 0.35rem 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+}
+
+p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+dl {
+  margin: 1.5rem 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  text-align: left;
+}
+
+dl div {
+  padding: 0.7rem;
+  border-radius: var(--radius-sm);
+  background: #f3f7fa;
+}
+
+dl .wide {
+  grid-column: 1 / -1;
+}
+
+dt {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.hash {
+  padding: 0.75rem;
+  border: 1px dashed #b9c9d7;
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.hash span {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.hash code {
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+}
+
+.back-link {
+  margin-top: 1.25rem;
+  display: inline-block;
+  color: var(--primary-color);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.state {
+  min-height: 14rem;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+}
+
+.state i {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+}
+
+@media (max-width: 520px) {
+  dl {
+    grid-template-columns: 1fr;
+  }
+
+  dl .wide {
+    grid-column: auto;
+  }
+}

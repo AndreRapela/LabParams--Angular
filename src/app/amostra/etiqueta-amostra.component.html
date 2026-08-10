@@ -1,0 +1,44 @@
+<main class="label-page" aria-labelledby="label-title">
+  <header class="page-actions no-print">
+    <a routerLink="/amostras" class="secondary-button">
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar
+    </a>
+    <button type="button" class="primary-button" (click)="print()" [disabled]="!amostra">
+      <i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir etiqueta
+    </button>
+  </header>
+
+  <div *ngIf="loading" class="state" role="status">Carregando etiqueta…</div>
+  <div *ngIf="error" class="state error" role="alert">{{ error }}</div>
+
+  <section *ngIf="amostra" class="sample-label">
+    <header>
+      <span class="brand-mark"><i class="fa-solid fa-flask" aria-hidden="true"></i></span>
+      <div>
+        <strong>SYSmLab</strong>
+        <small>Identificação e rastreabilidade</small>
+      </div>
+    </header>
+
+    <div class="label-content">
+      <div class="sample-data">
+        <span class="eyebrow">Código da amostra</span>
+        <h1 id="label-title">{{ amostra.codigo_amostra }}</h1>
+
+        <dl>
+          <div><dt>Número</dt><dd>{{ amostra.numero_da_amostra }}</dd></div>
+          <div><dt>Matriz</dt><dd>{{ amostra.matriz_nome || 'Não informada' }}</dd></div>
+          <div><dt>Coleta</dt><dd>{{ formatDate(amostra.data_coleta) }}</dd></div>
+          <div><dt>Local</dt><dd>{{ amostra.localizacao || 'Não informado' }}</dd></div>
+        </dl>
+      </div>
+
+      <figure>
+        <img [src]="qrCode" [alt]="'QR Code da amostra ' + amostra.codigo_amostra" />
+        <figcaption>Leia para identificar</figcaption>
+      </figure>
+    </div>
+
+    <footer>ID {{ amostra.id }} • Emitida em {{ formatDate(amostra.created_at || amostra.data_coleta) }}</footer>
+  </section>
+</main>

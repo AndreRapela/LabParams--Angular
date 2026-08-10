@@ -79,22 +79,42 @@
     aria-label="Navegação principal"
   >
     <div class="menu-container">
-      <a
-        *ngFor="let item of visibleNavigationItems"
-        class="menu-item"
-        [routerLink]="item.route"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [attr.title]="item.label"
-        (click)="closeMenu()"
+      <div
+        *ngFor="let group of visibleNavigationGroups"
+        class="nav-group"
+        routerLinkActive="active-group"
       >
-        <i class="fa-solid" [ngClass]="item.icon" aria-hidden="true"></i>
-        <span class="menu-label">{{ item.label }}</span>
-        <span class="menu-label-short">{{ item.shortLabel }}</span>
-      </a>
+        <button
+          class="group-toggle"
+          type="button"
+          (click)="toggleGroup(group.label)"
+          [attr.aria-expanded]="openGroup === group.label"
+        >
+          <i class="fa-solid" [ngClass]="group.icon" aria-hidden="true"></i>
+          <span>{{ group.label }}</span>
+          <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
+        </button>
+        <div class="group-menu" [class.open]="openGroup === group.label">
+          <a
+            *ngFor="let item of group.items"
+            class="menu-item"
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.title]="item.label"
+            (click)="closeMenu()"
+          >
+            <i class="fa-solid" [ngClass]="item.icon" aria-hidden="true"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        </div>
+      </div>
     </div>
   </nav>
 </header>
+
+<app-toast-container></app-toast-container>
+<app-confirmation-dialog></app-confirmation-dialog>
 
 <div
   *ngIf="showFilterModal"
@@ -134,6 +154,6 @@
     <span aria-hidden="true">•</span>
     <span>Sistema de Monitoramento Laboratorial</span>
     <span aria-hidden="true">•</span>
-    <span>Versão 2.1.0</span>
+    <span>Versão 3.0.0</span>
   </div>
 </footer>

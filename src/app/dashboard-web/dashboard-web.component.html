@@ -185,14 +185,12 @@
         </div>
 
         <div class="parameter-limits">
-          <span>Faixa de referência</span>
-          <strong>
-            {{ formatValue(getMinimum(param)) }} – {{ formatValue(getMaximum(param)) }}
-            {{ getUnit(param) }}
-          </strong>
+          <span>Referência legal</span>
+          <strong>{{ getLimitLabel(param) }}</strong>
         </div>
 
         <div
+          *ngIf="param.tipo_limite !== 'ausencia' && param.tipo_limite !== 'informativo'"
           class="progress-track"
           role="progressbar"
           aria-label="Posição do valor na faixa de referência"

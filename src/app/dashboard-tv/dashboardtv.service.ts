@@ -6,13 +6,15 @@ import { API_CONFIG } from '../../config/api.config';
 export interface ComplianceData {
   id: number;
   parameter_name: string;
-  current_value: number;
-  target_value: number;
+  current_value: number | string | null;
+  target_value: number | null;
   unit: string;
-  status: 'conforme' | 'alerta' | 'critico' | 'não conforme';
+  status: 'conforme' | 'alerta' | 'critico' | 'nao-conforme' | 'informativo';
   last_update: string;
-  limite_minimo: number;
-  limite_maximo: number;
+  limite_minimo: number | null;
+  limite_maximo: number | null;
+  tipo_limite?: string;
+  criterio_legal?: string | null;
   matriz_nome?: string;
   legislacao_sigla?: string;
   legislacao_nome?: string;
@@ -77,7 +79,7 @@ export class DashboardTvService {
       (item) => item.status === 'critico'
     ).length;
     const nonCompliantCount = mappedData.filter(
-      (item) => item.status === 'não conforme'
+      (item) => item.status === 'nao-conforme'
     ).length;
 
     return {
@@ -94,29 +96,16 @@ export class DashboardTvService {
   }
 
   private mapApiItemToComplianceData(item: any): ComplianceData {
-    // Mapeamento direto dos status - a API já calculou tudo
-    const statusMap: {
-      [key: string]: 'conforme' | 'alerta' | 'critico' | 'não conforme';
-    } = {
-      conforme: 'conforme',
-      alerta: 'alerta',
-      crítico: 'critico',
-      'não conforme': 'não conforme',
-      'dados inválidos': 'não conforme',
-      'dados inválidos - valor': 'não conforme',
-      'dados inválidos - mínimo': 'não conforme',
-      'dados inválidos - máximo': 'não conforme',
-    };
-
-    // Apenas converte valores para formatação
-    const currentValue = item.valor_parametro
-      ? parseFloat(item.valor_parametro)
-      : 0;
-    const minLimit = item.limite_minimo ? parseFloat(item.limite_minimo) : 0;
-    const maxLimit = item.limite_maximo ? parseFloat(item.limite_maximo) : 0;
-
-    // Usa o status_conformidade calculado pela API
-    const status = statusMap[item.status_conformidade] || 'não conforme';
+    const validStatuses = new Set([
+      'conforme', 'alerta', 'critico', 'nao-conforme', 'informativo',
+    ]);
+    const status = validStatuses.has(item.status_conformidade)
+      ? item.status_conformidade
+      : 'informativo';
+    const currentValue = item.valor_qualitativo ||
+      (item.valor_parametro === null ? null : Number(item.valor_parametro));
+    const minLimit = item.limite_minimo === null ? null : Number(item.limite_minimo);
+    const maxLimit = item.limite_maximo === null ? null : Number(item.limite_maximo);
 
     return {
       id: parseInt(item.id),
@@ -128,6 +117,8 @@ export class DashboardTvService {
       last_update: item.created_at || new Date().toISOString(),
       limite_minimo: minLimit,
       limite_maximo: maxLimit,
+      tipo_limite: item.tipo_limite,
+      criterio_legal: item.criterio_legal,
       matriz_nome: item.matriz_nome,
       legislacao_sigla: item.legislacao_sigla,
       legislacao_nome: item.legislacao_nome,

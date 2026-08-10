@@ -14,6 +14,15 @@ export interface Amostra {
   localizacao: string;
   matriz_id: number;
   usuario_id: string; // UUID do usuário responsável
+  pedido_analise_id?: number | null;
+  status_amostra?:
+    | 'registrada'
+    | 'recebida'
+    | 'em_analise'
+    | 'concluida'
+    | 'rejeitada'
+    | 'cancelada';
+  status_atualizado_em?: string | null;
 
   // Array de IDs dos parâmetros (Para Create/Update)
   parametros_ids?: number[];
