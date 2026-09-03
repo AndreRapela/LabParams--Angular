@@ -12,6 +12,7 @@ import {
   timeout,
 } from 'rxjs';
 import { ParametrosFilterService } from '../shared/filtro-parametros.service';
+import { ApiPagination } from '../shared/pilot-workflow/api.types';
 import {
   ComplianceData,
   ComplianceStatus,
@@ -28,6 +29,15 @@ const EMPTY_STATISTICS: DashboardStatistics = {
   critical_count: 0,
   non_compliant_count: 0,
   total_parameters: 0,
+};
+
+const EMPTY_PAGINATION: ApiPagination = {
+  page: 1,
+  page_size: 12,
+  total: 0,
+  total_pages: 0,
+  has_next: false,
+  has_previous: false,
 };
 
 @Component({
@@ -59,6 +69,9 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
   legislacoes: Legislacao[] = [];
   matrizes: Matriz[] = [];
   statistics: DashboardStatistics = EMPTY_STATISTICS;
+  pagination: ApiPagination = EMPTY_PAGINATION;
+  page = 1;
+  readonly pageSize = 12;
 
   loading = true;
   loadingFilters = true;
@@ -88,6 +101,7 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
   }
 
   loadInitialData(): void {
+    this.page = 1;
     this.loading = true;
     this.loadingFilters = true;
     this.error = null;
@@ -119,11 +133,13 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
           this.error = error.message;
           this.parameters = [];
           this.statistics = EMPTY_STATISTICS;
+          this.pagination = { ...EMPTY_PAGINATION, page_size: this.pageSize };
         },
       });
   }
 
-  filtrar(): void {
+  filtrar(resetPage = true): void {
+    if (resetPage) this.page = 1;
     this.filterRequest?.unsubscribe();
     this.loading = true;
     this.error = null;
@@ -141,6 +157,11 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
           this.error = error.message;
           this.parameters = [];
           this.statistics = EMPTY_STATISTICS;
+          this.pagination = {
+            ...EMPTY_PAGINATION,
+            page: this.page,
+            page_size: this.pageSize,
+          };
         },
       });
   }
@@ -152,9 +173,10 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
     this.filtroDataColeta = '';
     this.filtroDataPublicacao = '';
     this.filtroStatus = '';
+    const hadParameterFilter = this.filtroParametro.length > 0;
     this.filtroService.clear();
     this.filtroParametro = [];
-    this.filtrar();
+    if (!hadParameterFilter) this.filtrar();
   }
 
   removerMatriz(): void {
@@ -165,6 +187,32 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
   removerLegislacao(): void {
     this.selectedLegislacao = null;
     this.filtrar();
+  }
+
+  mudarPagina(page: number): void {
+    if (
+      this.loading ||
+      page < 1 ||
+      page > this.pagination.total_pages ||
+      page === this.page
+    ) {
+      return;
+    }
+    this.page = page;
+    this.filtrar(false);
+  }
+
+  get rangeStart(): number {
+    return this.pagination.total
+      ? (this.page - 1) * this.pagination.page_size + 1
+      : 0;
+  }
+
+  get rangeEnd(): number {
+    return Math.min(
+      this.page * this.pagination.page_size,
+      this.pagination.total
+    );
   }
 
   get hasActiveFilters(): boolean {
@@ -286,6 +334,8 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
       data_coleta: this.filtroDataColeta || undefined,
       data_publicacao: this.filtroDataPublicacao || undefined,
       status: this.filtroStatus || undefined,
+      page: this.page,
+      page_size: this.pageSize,
     };
   }
 
@@ -293,9 +343,15 @@ export class DashboardWebComponent implements OnInit, OnDestroy {
     data: ComplianceData[];
     statistics: DashboardStatistics;
     last_updated: string;
+    pagination: ApiPagination;
   }): void {
     this.parameters = response.data;
     this.statistics = response.statistics;
-    this.lastUpdated = new Date(response.last_updated).toLocaleString('pt-BR');
+    this.pagination = response.pagination;
+    this.page = response.pagination.page;
+    const lastUpdated = new Date(response.last_updated);
+    this.lastUpdated = Number.isNaN(lastUpdated.getTime())
+      ? ''
+      : lastUpdated.toLocaleString('pt-BR');
   }
 }

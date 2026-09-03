@@ -1,84 +1,283 @@
-<div class="page-container">
-
-  <h1 class="page-title">Gerenciamento de Parâmetros</h1>
-
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Parâmetro</th>
-          <th>Valor Atual</th>
-          <th>Limite Mínimo</th>
-          <th>Limite Máximo</th>
-          <th>Matriz</th>
-          <th>Legislação</th>
-          <th>Contexto</th>
-          <th>Editar</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr *ngFor="let p of parametros">
-          <td>{{ p.nome }}</td>
-          <td>{{ p.valor_parametro }}</td>
-          <td>{{ p.limite_minimo }}</td>
-          <td>{{ p.limite_maximo }}</td>
-          <td>{{ p.matriz_nome }}</td>
-          <td>{{ p.legislacao_sigla }}</td>
-          <td>{{ p.contexto_nome }}</td>
-          <td class="action-col">
-            <button class="edit-btn" (click)="abrirEdicao(p)"> <i class="fas fa-edit"></i></button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- MODAL -->
-  <div class="modal" *ngIf="editando">
-    <div class="modal-content">
-
-      <h2>Editar Parâmetro</h2>
-
-      <form (ngSubmit)="salvar()">
-
-        <div class="form-group">
-          <label>Nome</label>
-          <input class="input" [value]="form.nome" disabled>
-        </div>
-
-        <div class="form-group">
-          <label>Valor</label>
-          <input
-            class="input"
-            type="number"
-            [(ngModel)]="form.valor_parametro"
-            name="valor_parametro"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Limite Mínimo</label>
-          <input class="input" [value]="form.limite_minimo" disabled>
-        </div>
-
-        <div class="form-group">
-          <label>Limite Máximo</label>
-          <input class="input" [value]="form.limite_maximo" disabled>
-        </div>
-
-        <div class="form-group">
-          <label>Enquadramento legal</label>
-          <input class="input" [value]="form.legislacao_sigla + ' · ' + form.contexto_nome" disabled>
-        </div>
-
-        <div class="btn-area">
-          <button class="btn-save" type="submit">Salvar</button>
-          <button class="btn-cancel" type="button" (click)="fechar()">Cancelar</button>
-        </div>
-
-      </form>
+<main class="module-page" aria-labelledby="parameter-management-title">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Catálogo regulamentar</p>
+      <h1 id="parameter-management-title">Gerenciamento de parâmetros</h1>
+      <p>
+        Consulte o enquadramento legal e mantenha somente o valor operacional
+        atual. Os limites da legislação são protegidos contra edição.
+      </p>
     </div>
+
+    <div class="metric-strip" aria-label="Resumo do catálogo">
+      <div class="metric">
+        <strong>{{ pagination.total }}</strong>
+        <span>Parâmetros filtrados</span>
+      </div>
+      <div class="metric">
+        <strong>{{ legislacoes.length }}</strong>
+        <span>Legislações</span>
+      </div>
+      <div class="metric">
+        <strong>{{ withOperationalValue }}</strong>
+        <span>Com valor nesta página</span>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="feedback" class="feedback success" role="status">
+    {{ feedback }}
+  </div>
+  <div *ngIf="error" class="feedback error" role="alert">
+    {{ error }}
+    <button type="button" class="inline-retry" (click)="carregarTudo()">
+      Tentar novamente
+    </button>
   </div>
 
+  <section class="toolbar" aria-label="Filtros do catálogo">
+    <label class="search-field">
+      <span class="sr-only">Buscar parâmetro</span>
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input
+        type="search"
+        [(ngModel)]="search"
+        (ngModelChange)="agendarBusca()"
+        placeholder="Parâmetro, categoria ou contexto"
+        autocomplete="off"
+        [attr.maxlength]="searchMaxLength"
+      />
+    </label>
+
+    <label>
+      <span class="sr-only">Filtrar por matriz</span>
+      <select [(ngModel)]="matrizId" (ngModelChange)="aplicarFiltros()">
+        <option value="">Todas as matrizes</option>
+        <option *ngFor="let matrix of matrizes" [value]="matrix.id">
+          {{ matrix.nome }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span class="sr-only">Filtrar por legislação</span>
+      <select [(ngModel)]="legislacaoId" (ngModelChange)="aplicarFiltros()">
+        <option value="">Todas as legislações</option>
+        <option *ngFor="let legislation of legislacoes" [value]="legislation.id">
+          {{ legislation.sigla }}
+        </option>
+      </select>
+    </label>
+
+    <button
+      type="button"
+      class="button-secondary"
+      (click)="limparFiltros()"
+      [disabled]="!search && !matrizId && !legislacaoId"
+    >
+      Limpar filtros
+    </button>
+    <button
+      type="button"
+      class="button-secondary"
+      (click)="carregarTudo()"
+      [disabled]="loading"
+    >
+      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+      Atualizar
+    </button>
+  </section>
+
+  <section class="data-card" [attr.aria-busy]="loading">
+    <div *ngIf="loading" class="loading-state" role="status">
+      <span class="spinner-border text-primary" aria-hidden="true"></span>
+      Carregando catálogo de parâmetros…
+    </div>
+
+    <div
+      *ngIf="!loading && !error && parametros.length === 0"
+      class="empty-state"
+    >
+      <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
+      <h2>Nenhum parâmetro encontrado</h2>
+      <p>Altere ou limpe os filtros para consultar o catálogo.</p>
+    </div>
+
+    <div
+      *ngIf="!loading && !error && parametros.length > 0"
+      class="table-shell"
+    >
+      <div class="table-summary" role="status">
+        Exibindo {{ rangeStart }}–{{ rangeEnd }} de
+        {{ pagination.total }} parâmetros
+      </div>
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">
+            Parâmetros, valores atuais e limites definidos pela legislação
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Parâmetro</th>
+              <th scope="col">Valor atual</th>
+              <th scope="col">Limite legal</th>
+              <th scope="col">Matriz</th>
+              <th scope="col">Enquadramento</th>
+              <th scope="col" class="action-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let parameter of parametros; trackBy: trackByParametro"
+            >
+              <td data-label="Parâmetro">
+                <strong>{{ parameter.nome }}</strong>
+                <small>{{ parameter.categoria || 'Sem categoria' }}</small>
+              </td>
+              <td data-label="Valor atual">
+                <span
+                  class="current-value"
+                  [class.not-set]="parameter.valor_parametro === null"
+                >
+                  {{ formatValue(parameter.valor_parametro) }}
+                  <small *ngIf="parameter.valor_parametro !== null">
+                    {{ parameter.unidade_medida }}
+                  </small>
+                </span>
+              </td>
+              <td data-label="Limite legal">
+                <span class="limit-value">{{ formatLimit(parameter) }}</span>
+              </td>
+              <td data-label="Matriz">{{ parameter.matriz_nome }}</td>
+              <td data-label="Enquadramento">
+                <strong>{{ parameter.legislacao_sigla }}</strong>
+                <small>{{ parameter.contexto_nome }}</small>
+              </td>
+              <td data-label="Ações" class="action-column">
+                <button
+                  type="button"
+                  class="edit-button"
+                  (click)="abrirEdicao(parameter, $event.currentTarget)"
+                  [attr.aria-label]="'Editar valor atual de ' + parameter.nome"
+                >
+                  <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                  Editar valor
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <nav *ngIf="totalPages > 1" class="pagination" aria-label="Paginação do catálogo">
+        <button
+          type="button"
+          class="button-secondary"
+          (click)="mudarPagina(page - 1)"
+          [disabled]="page === 1"
+        >
+          Anterior
+        </button>
+        <span>Página {{ page }} de {{ totalPages }}</span>
+        <button
+          type="button"
+          class="button-secondary"
+          (click)="mudarPagina(page + 1)"
+          [disabled]="page === totalPages"
+        >
+          Próxima
+        </button>
+      </nav>
+    </div>
+  </section>
+</main>
+
+<div
+  *ngIf="editando"
+  class="dialog-backdrop"
+  role="presentation"
+  (mousedown)="$event.target === $event.currentTarget && fechar()"
+>
+  <section
+    #editDialog
+    class="edit-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-parameter-title"
+    aria-describedby="edit-parameter-description"
+    tabindex="-1"
+    (keydown)="manterFocoNoEditor($event)"
+  >
+    <header class="dialog-heading">
+      <div>
+        <p class="eyebrow">Valor operacional</p>
+        <h2 id="edit-parameter-title">{{ editando.nome }}</h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        (click)="fechar()"
+        aria-label="Fechar edição"
+        [disabled]="saving"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <p id="edit-parameter-description" class="dialog-description">
+      O valor atual apoia o monitoramento operacional. O limite legal abaixo
+      permanece imutável e é aplicado aos resultados por contexto.
+    </p>
+
+    <div class="legal-context">
+      <span>{{ editando.matriz_nome }}</span>
+      <span>{{ editando.legislacao_sigla }}</span>
+      <strong>{{ editando.contexto_nome }}</strong>
+      <p>{{ formatLimit(editando) }}</p>
+      <small *ngIf="editando.fonte_referencia">
+        Fonte: {{ editando.fonte_referencia }}
+      </small>
+    </div>
+
+    <form (ngSubmit)="salvar()" novalidate>
+      <label for="parameter-current-value">Valor atual</label>
+      <div class="value-input">
+        <input
+          #valueInput
+          id="parameter-current-value"
+          name="valor_parametro"
+          type="number"
+          min="0"
+          step="any"
+          [(ngModel)]="valorEditado"
+          [attr.aria-invalid]="editorError ? 'true' : null"
+          [attr.aria-describedby]="editorError ? 'parameter-value-error' : 'parameter-value-help'"
+          [disabled]="saving"
+        />
+        <span *ngIf="editando.unidade_medida">{{ editando.unidade_medida }}</span>
+      </div>
+      <small id="parameter-value-help">
+        Deixe em branco para remover o valor operacional atual.
+      </small>
+
+      <div *ngIf="editorError" id="parameter-value-error" class="feedback error" role="alert">
+        {{ editorError }}
+      </div>
+
+      <footer class="dialog-actions">
+        <button
+          type="button"
+          class="button-secondary"
+          (click)="fechar()"
+          [disabled]="saving"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="button-primary" [disabled]="saving">
+          <span *ngIf="saving" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          {{ saving ? 'Salvando…' : 'Salvar valor' }}
+        </button>
+      </footer>
+    </form>
+  </section>
 </div>

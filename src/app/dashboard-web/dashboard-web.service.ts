@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core';
 import { Observable, catchError, map, throwError } from 'rxjs';
 import { API_CONFIG } from '../../config/api.config';
+import { ApiPagination } from '../shared/pilot-workflow/api.types';
 
 export interface Legislacao {
   id: number;
@@ -59,6 +60,7 @@ export interface DashboardResponse {
   data: ComplianceData[];
   statistics: DashboardStatistics;
   last_updated: string;
+  pagination: ApiPagination;
   message?: string;
 }
 
@@ -78,6 +80,8 @@ export interface DashboardFilters {
   data_coleta?: string;
   data_publicacao?: string;
   status?: string;
+  page?: number;
+  page_size?: number;
 }
 
 const EMPTY_STATISTICS: DashboardStatistics = {
@@ -86,6 +90,15 @@ const EMPTY_STATISTICS: DashboardStatistics = {
   critical_count: 0,
   non_compliant_count: 0,
   total_parameters: 0,
+};
+
+const EMPTY_PAGINATION: ApiPagination = {
+  page: 1,
+  page_size: 12,
+  total: 0,
+  total_pages: 0,
+  has_next: false,
+  has_previous: false,
 };
 
 @Injectable({ providedIn: 'root' })
@@ -104,6 +117,7 @@ export class DashboardWebService {
           ...response,
           data: response.data ?? [],
           statistics: response.statistics ?? EMPTY_STATISTICS,
+          pagination: response.pagination ?? EMPTY_PAGINATION,
         })),
         catchError((error: HttpErrorResponse) => this.handleError(error))
       );
@@ -131,6 +145,8 @@ export class DashboardWebService {
       ['data_coleta', filters.data_coleta],
       ['data_publicacao', filters.data_publicacao],
       ['status', filters.status],
+      ['page', filters.page],
+      ['page_size', filters.page_size],
     ];
 
     for (const [key, value] of values) {

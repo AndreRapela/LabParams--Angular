@@ -178,11 +178,10 @@ export class GraficoParametroComponent implements OnInit {
           this.dadosGrafico = [];
         }
       },
-      error: (err) => {
+      error: () => {
         this.isLoading = false;
         this.errorMessage = 'Erro ao carregar dados do gráfico. Tente novamente.';
         this.dadosGrafico = [];
-        console.error('Erro ao carregar gráfico:', err);
       }
     });
   }

@@ -1,6 +1,21 @@
-<div class="container">
-  <h1>🚫 Acesso Negado</h1>
-  <p>Você não tem permissão para acessar esta página.</p>
+<main class="access-page" aria-labelledby="access-title">
+  <section class="access-card">
+    <span class="access-icon" aria-hidden="true">
+      <i class="fa-solid" [ngClass]="content.icon"></i>
+    </span>
+    <p class="eyebrow">{{ content.eyebrow }}</p>
+    <h1 id="access-title">{{ content.title }}</h1>
+    <p class="message">{{ content.message }}</p>
+    <p *ngIf="checkError" class="check-error" role="alert">{{ checkError }}</p>
 
-  <button (click)="voltar()">Voltar</button>
-</div>
+    <div class="actions">
+      <button type="button" class="primary" (click)="verificarNovamente()" [disabled]="checking">
+        <span *ngIf="checking" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        {{ checking ? 'Verificando…' : 'Verificar novamente' }}
+      </button>
+      <button type="button" class="secondary" (click)="sair()" [disabled]="checking">
+        Entrar com outra conta
+      </button>
+    </div>
+  </section>
+</main>

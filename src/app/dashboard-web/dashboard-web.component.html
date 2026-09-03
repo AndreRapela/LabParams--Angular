@@ -137,7 +137,11 @@
     <div class="results-heading">
       <div>
         <h2 id="results-title">Resultados monitorados</h2>
-        <p>{{ parameters.length }} resultado(s) encontrado(s)</p>
+        <p *ngIf="pagination.total" aria-live="polite">
+          Exibindo {{ rangeStart }}–{{ rangeEnd }} de {{ pagination.total }}
+          resultados · página {{ page }} de {{ pagination.total_pages }}
+        </p>
+        <p *ngIf="!pagination.total">Nenhum resultado encontrado</p>
       </div>
     </div>
 
@@ -206,5 +210,31 @@
         </footer>
       </article>
     </div>
+
+    <nav
+      *ngIf="!loading && !error && pagination.total_pages > 1"
+      class="pagination-controls"
+      aria-label="Paginação dos resultados monitorados"
+    >
+      <button
+        type="button"
+        (click)="mudarPagina(page - 1)"
+        [disabled]="page <= 1"
+        aria-label="Ir para a página anterior"
+      >
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        Anterior
+      </button>
+      <span aria-live="polite">Página {{ page }} de {{ pagination.total_pages }}</span>
+      <button
+        type="button"
+        (click)="mudarPagina(page + 1)"
+        [disabled]="page >= pagination.total_pages"
+        aria-label="Ir para a próxima página"
+      >
+        Próxima
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+    </nav>
   </section>
 </div>

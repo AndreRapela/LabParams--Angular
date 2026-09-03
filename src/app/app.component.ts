@@ -212,6 +212,14 @@ export class AppComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((status) => void this.updateUser(status));
 
+    this.authService.currentAccess$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((access) => {
+        // O perfil exibido e usado para montar o menu vem da mesma fonte
+        // autoritativa consultada pelos guards, nunca de metadados do navegador.
+        this.userRole = access?.perfil ?? '';
+      });
+
     this.filtroService
       .get()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -237,7 +245,9 @@ export class AppComponent implements OnInit {
   }
 
   get visibleNavigationItems(): NavigationItem[] {
-    if (!this.userRole) return this.navigationItems;
+    if (!this.userRole) {
+      return this.navigationItems.filter((item) => !item.roles);
+    }
     const role = this.userRole.toLocaleLowerCase('pt-BR');
     return this.navigationItems.filter(
       (item) => !item.roles || item.roles.includes(role)
@@ -330,11 +340,16 @@ export class AppComponent implements OnInit {
       metadata?.['name'] ||
       'Usuário';
     this.userEmail = session?.user.email ?? '';
-    this.userRole = session?.user.app_metadata?.['perfil'] ?? 'Usuário';
   }
 
   private updateRouteState(url: string): void {
-    const authRoutes = ['/login', '/recuperar-senha', '/nova-senha', '/verificar-laudo'];
+    const authRoutes = [
+      '/login',
+      '/recuperar-senha',
+      '/nova-senha',
+      '/verificar-laudo',
+      '/acesso-negado',
+    ];
     this.isAuthRoute = authRoutes.some((route) => url.startsWith(route));
     this.mostrarBotaoParametros = [
       '/dashboard-web',

@@ -4,7 +4,7 @@ Interface Angular do SYSmLab, voltada à gestão de amostras e resultados labora
 
 ## Requisitos
 
-- Node.js 20–24
+- Node.js 22–24
 - API SYSmLab em execução
 - Projeto Supabase configurado
 
@@ -17,7 +17,13 @@ npm start
 
 Abra `http://localhost:4200`.
 
-As URLs da API e do Supabase ficam em `src/environments/environment.ts` e `src/environments/environment.prod.ts`. O navegador deve receber somente a chave **Publishable** do Supabase, nunca a Secret/Service Role.
+No desenvolvimento, as URLs padrão ficam em `src/environments/environment.ts`.
+A aplicação lê `public/runtime-config.js` antes de iniciar; o arquivo versionado
+é vazio para que `ng serve` continue usando a API local. Quando for necessário
+alterar um ambiente já compilado, copie `public/runtime-config.example.js`,
+preencha os três valores públicos e substitua `runtime-config.js` no deploy.
+O navegador deve receber somente a chave **Publishable** do Supabase, nunca a
+Secret/Service Role.
 
 ## Build e deploy
 

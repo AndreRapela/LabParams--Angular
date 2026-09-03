@@ -24,7 +24,7 @@
         <span class="panel-icon"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>
         <div>
           <h2 id="new-user-title">Novo usuário</h2>
-          <p>A senha inicial deve ter pelo menos 8 caracteres.</p>
+          <p>A senha inicial segue a política de segurança do ambiente.</p>
         </div>
       </header>
 
@@ -63,17 +63,20 @@
         <div class="password-grid">
           <div class="field">
             <label for="register-password">Senha inicial</label>
-            <input id="register-password" type="password" formControlName="senha" autocomplete="new-password" />
+            <input id="register-password" type="password" formControlName="senha" autocomplete="new-password" maxlength="200" aria-describedby="register-password-rules" [attr.aria-invalid]="form.get('senha')?.touched && form.get('senha')?.invalid" />
           </div>
 
           <div class="field">
             <label for="confirm-password">Confirmar senha</label>
-            <input id="confirm-password" type="password" formControlName="confirmarSenha" autocomplete="new-password" />
+            <input id="confirm-password" type="password" formControlName="confirmarSenha" autocomplete="new-password" maxlength="200" />
           </div>
         </div>
 
-        <small class="field-error" *ngIf="form.get('senha')?.hasError('minlength') && form.get('senha')?.touched">
-          A senha deve ter no mínimo 8 caracteres.
+        <small id="register-password-rules" class="password-rules">
+          Use de 12 a 200 caracteres, com letra minúscula, maiúscula, número e símbolo.
+        </small>
+        <small class="field-error" *ngIf="form.get('senha')?.hasError('passwordStrength') && form.get('senha')?.touched">
+          A senha ainda não atende a todos os requisitos de segurança.
         </small>
         <small class="field-error" *ngIf="form.hasError('senhaDiferente') && form.get('confirmarSenha')?.touched">
           As senhas não conferem.
@@ -108,7 +111,15 @@
           <div class="user-info">
             <strong>{{ user.nome }}</strong>
             <span>{{ user.email }}</span>
-            <small>Cadastrado em {{ formatDate(user.created_at) }}</small>
+            <div class="user-meta">
+              <small>Cadastrado em {{ formatDate(user.created_at) }}</small>
+              <span
+                class="access-status"
+                [class.approved]="user.acesso_aprovado"
+              >
+                {{ user.acesso_aprovado ? 'Acesso aprovado' : 'Aguardando aprovação' }}
+              </span>
+            </div>
           </div>
           <div class="role-control">
             <label [for]="'role-' + user.id">Perfil</label>
@@ -120,9 +131,21 @@
             type="button"
             class="save-button"
             (click)="updateRole(user)"
-            [disabled]="selectedRoles[user.id] === user.perfil || updatingUserId !== ''"
+            [disabled]="selectedRoles[user.id] === user.perfil || updatingUserId !== '' || updatingApprovalUserId !== ''"
           >
             {{ updatingUserId === user.id ? 'Salvando…' : 'Salvar' }}
+          </button>
+          <button
+            type="button"
+            class="approval-button"
+            [class.block]="user.acesso_aprovado"
+            (click)="toggleApproval(user)"
+            [disabled]="updatingApprovalUserId !== '' || updatingUserId !== '' || isSelfBlock(user)"
+            [attr.title]="isSelfBlock(user) ? 'Você não pode bloquear sua própria conta.' : null"
+          >
+            {{ updatingApprovalUserId === user.id
+              ? 'Atualizando…'
+              : (user.acesso_aprovado ? 'Bloquear' : 'Aprovar') }}
           </button>
         </article>
       </div>

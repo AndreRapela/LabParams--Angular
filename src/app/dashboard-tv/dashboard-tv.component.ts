@@ -5,8 +5,8 @@ import {
   ComplianceData,
   DashboardTvResponse,
 } from './dashboardtv.service';
-import { interval, Subscription } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { EMPTY, interval, Subscription } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { ParametrosFilterService } from '../shared/filtro-parametros.service';
 
 @Component({
@@ -69,13 +69,23 @@ export class DashboardTvComponent implements OnInit, OnDestroy {
   // Atualização automática a cada 30s
   setupAutoRefresh(): void {
     this.refreshSubscription = interval(30000)
-      .pipe(switchMap(() => this.dashboardService.getDashboardData(this.selectedParametroIds)))
+      .pipe(
+        switchMap(() =>
+          this.dashboardService.getDashboardData(this.selectedParametroIds).pipe(
+            catchError(() => {
+              this.error = 'Não foi possível atualizar o dashboard automaticamente.';
+              this.loading = false;
+              return EMPTY;
+            })
+          )
+        )
+      )
       .subscribe({
         next: (data) => {
           this.dashboardData = data;
+          this.error = null;
           this.loading = false;
         },
-        error: (e) => console.error('Erro na atualização automática:', e),
       });
   }
 
@@ -88,7 +98,7 @@ listenFiltroParametros(): void {
 
 
   // Carregamento inicial
-  loadDashboardData(parametroIds: number[] = []): void {
+  loadDashboardData(parametroIds: number[] = this.selectedParametroIds): void {
     this.loading = true;
     this.error = null;
 

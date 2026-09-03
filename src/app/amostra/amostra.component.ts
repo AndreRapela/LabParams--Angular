@@ -103,8 +103,7 @@ export class AmostraComponent implements OnInit {
         this.usuarios = usuarios.data || [];
         this.parametros = parametros.data || [];
       },
-      error: (error) => {
-        console.error('Erro ao carregar dados:', error);
+      error: () => {
         this.notifications.error('Erro ao carregar dados do servidor.');
       },
     });
@@ -153,7 +152,6 @@ export class AmostraComponent implements OnInit {
           this.loadAmostras();
         },
         error: (err) => {
-          console.error(err);
           this.notifications.error(getApiError(err, 'Não foi possível salvar a amostra.'));
           this.loading = false;
         }
@@ -192,8 +190,10 @@ export class AmostraComponent implements OnInit {
         this.loading = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
-      error: (err) => {
-        console.error('Erro ao buscar detalhes:', err);
+      error: (error: unknown) => {
+        this.notifications.error(
+          getApiError(error, 'Não foi possível carregar os detalhes da amostra.'),
+        );
         this.loading = false;
       }
     });
@@ -260,9 +260,10 @@ export class AmostraComponent implements OnInit {
         this.amostraParaVisualizacao = res.data;
         this.loading = false;
       },
-      error: (err) => {
-        console.error(err);
-        this.notifications.error('Erro ao carregar detalhes da amostra.');
+      error: (error: unknown) => {
+        this.notifications.error(
+          getApiError(error, 'Erro ao carregar detalhes da amostra.'),
+        );
         this.loading = false;
       }
     });

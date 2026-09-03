@@ -163,8 +163,15 @@ h1 {
   font-size: 0.74rem;
 }
 
+.password-rules {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
 .primary-button,
-.save-button {
+.save-button,
+.approval-button {
   border: 0;
   border-radius: var(--radius-sm);
   font-weight: 750;
@@ -179,7 +186,8 @@ h1 {
 }
 
 .primary-button:disabled,
-.save-button:disabled {
+.save-button:disabled,
+.approval-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -230,6 +238,31 @@ h1 {
   white-space: nowrap;
 }
 
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.user-meta .access-status {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  color: #8a5500;
+  background: #fff4d6;
+  font-size: 0.66rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.user-meta .access-status.approved {
+  color: #116a4d;
+  background: #e8f7f1;
+}
+
 .role-control {
   display: grid;
   gap: 0.2rem;
@@ -246,6 +279,18 @@ h1 {
   padding: 0.4rem 0.7rem;
   color: var(--primary-dark);
   background: var(--primary-light);
+}
+
+.approval-button {
+  min-height: 2.35rem;
+  padding: 0.4rem 0.7rem;
+  color: #116a4d;
+  background: #e8f7f1;
+}
+
+.approval-button.block {
+  color: #a42b35;
+  background: #fff0f1;
 }
 
 .loading-state,

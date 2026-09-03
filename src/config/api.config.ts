@@ -1,5 +1,5 @@
-import { environment } from '../environments/environment';
+import { RUNTIME_CONFIG } from './runtime.config';
 
 export const API_CONFIG = {
-  baseUrl: environment.apiUrl
-};
+  baseUrl: RUNTIME_CONFIG.apiUrl,
+} as const;

@@ -1,11 +1,16 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { Session } from '@supabase/supabase-js';
 import { API_CONFIG } from '../../../config/api.config';
 import { getSupabaseClient } from './supabase.client';
+import {
+  CurrentAccess,
+  CurrentAccessResponse,
+  UserRole,
+} from './access-state';
 
-export type UserRole = 'Gestor' | 'Analista' | 'Usuário';
+export type { CurrentAccess, UserRole } from './access-state';
 
 export interface ManagedUser {
   id: string;
@@ -13,6 +18,7 @@ export interface ManagedUser {
   email: string;
   telefone: string | null;
   perfil: UserRole;
+  acesso_aprovado: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -25,10 +31,14 @@ export class AuthService {
 
   private sessionCache: Session | null = null;
   private loadingSession: Promise<Session | null> | null = null;
+  private refreshingSession: Promise<boolean> | null = null;
+  private loadingCurrentAccess: Promise<CurrentAccess> | null = null;
   private sessionLoaded = false;
 
   readonly isLoggedIn$ = this.authState.asObservable();
   readonly ready$ = this.readyState.asObservable();
+  private readonly currentAccessState = new BehaviorSubject<CurrentAccess | null>(null);
+  readonly currentAccess$ = this.currentAccessState.asObservable();
 
   constructor(private readonly http: HttpClient) {
     this.supabase.auth.onAuthStateChange((_event, session) => {
@@ -45,8 +55,14 @@ export class AuthService {
   }
 
   private setSession(session: Session | null): void {
+    const previousUserId = this.sessionCache?.user.id ?? null;
+    const nextUserId = session?.user.id ?? null;
     this.sessionCache = session;
     this.sessionLoaded = true;
+    if (previousUserId !== nextUserId || !nextUserId) {
+      this.currentAccessState.next(null);
+      this.loadingCurrentAccess = null;
+    }
     this.authState.next(Boolean(session?.user));
   }
 
@@ -78,16 +94,25 @@ export class AuthService {
     return this.sessionCache?.access_token ?? null;
   }
 
-  async refreshToken(): Promise<boolean> {
-    const { data, error } = await this.supabase.auth.refreshSession();
+  getCurrentAccess(): Promise<CurrentAccess> {
+    if (!this.loadingCurrentAccess) {
+      this.loadingCurrentAccess = this.performCurrentAccessCheck().finally(() => {
+        this.loadingCurrentAccess = null;
+      });
+    }
+    return this.loadingCurrentAccess;
+  }
 
-    if (error || !data.session) {
-      this.setSession(null);
-      return false;
+  refreshToken(): Promise<boolean> {
+    // Várias chamadas podem receber 401 ao mesmo tempo. Compartilhar a mesma
+    // renovação evita uma rajada de refresh tokens e estados de sessão rivais.
+    if (!this.refreshingSession) {
+      this.refreshingSession = this.performTokenRefresh().finally(() => {
+        this.refreshingSession = null;
+      });
     }
 
-    this.setSession(data.session);
-    return true;
+    return this.refreshingSession;
   }
 
   async login(email: string, password: string) {
@@ -138,6 +163,13 @@ export class AuthService {
     ));
   }
 
+  async updateUserApproval(userId: string, acessoAprovado: boolean): Promise<void> {
+    await firstValueFrom(this.http.put(
+      `${API_CONFIG.baseUrl}/usuarios/${userId}/aprovacao`,
+      { acesso_aprovado: acessoAprovado }
+    ));
+  }
+
   async logout(): Promise<void> {
     try {
       await this.supabase.auth.signOut();
@@ -170,5 +202,49 @@ export class AuthService {
 
     if (error) throw error;
     return data;
+  }
+
+  private async performTokenRefresh(): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase.auth.refreshSession();
+
+      if (error || !data.session) {
+        this.setSession(null);
+        return false;
+      }
+
+      this.setSession(data.session);
+      return true;
+    } catch {
+      // Uma falha de rede durante o refresh não pode manter uma sessão
+      // expirada como se ainda fosse utilizável pelos guards.
+      this.setSession(null);
+      return false;
+    }
+  }
+
+  private async performCurrentAccessCheck(): Promise<CurrentAccess> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<CurrentAccessResponse>(`${API_CONFIG.baseUrl}/acesso-atual`),
+      );
+      if (!response.success || !response.data) {
+        throw new Error('Resposta inválida ao verificar o acesso atual.');
+      }
+      this.currentAccessState.next(response.data);
+      return response.data;
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        const response = error.error as Partial<CurrentAccessResponse> | null;
+        if (
+          response?.code === 'USUARIO_NAO_CADASTRADO' &&
+          response.data?.status_acesso === 'nao-cadastrado'
+        ) {
+          this.currentAccessState.next(response.data);
+          return response.data;
+        }
+      }
+      throw error;
+    }
   }
 }

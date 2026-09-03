@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth/auth.service';
+import { strongPasswordValidator } from '../../shared/validation/password.validator';
 
 @Component({
   selector: 'app-nova-senha',
@@ -17,6 +18,7 @@ export class NovaSenhaComponent implements OnInit {
   errorMessage = '';
   accessToken = '';
   refreshToken = '';
+  validatingToken = true;
 
   constructor(
     private fb: FormBuilder,
@@ -26,7 +28,7 @@ export class NovaSenhaComponent implements OnInit {
   ) {
     this.form = this.fb.group(
       {
-        senha: ['', [Validators.required, Validators.minLength(6)]],
+        senha: ['', [Validators.required, strongPasswordValidator]],
         confirmarSenha: ['', [Validators.required]]
       },
       {
@@ -36,19 +38,40 @@ export class NovaSenhaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Pega o token vindo no hash da URL
+    void this.initializeRecoverySession();
+  }
+
+  private async initializeRecoverySession(): Promise<void> {
     const hash = window.location.hash.replace('#', '');
     const params = new URLSearchParams(hash);
 
     this.accessToken = params.get('access_token') || '';
     this.refreshToken = params.get('refresh_token') || '';
+    if (hash) {
+      window.history.replaceState(
+        {},
+        document.title,
+        `${window.location.pathname}${window.location.search}`,
+      );
+    }
 
-    if (this.accessToken && this.refreshToken) {
-      // Ativa a sessão no Supabase usando o token
-      this.authService.setSessionFromToken(this.accessToken, this.refreshToken)
-        .catch(() => {
-          this.errorMessage = 'Token inválido ou expirado. Solicite outro email.';
-        });
+    try {
+      if (this.accessToken && this.refreshToken) {
+        await this.authService.setSessionFromToken(
+          this.accessToken,
+          this.refreshToken,
+        );
+      } else if (!(await this.authService.getSession())) {
+        this.errorMessage =
+          'Token inválido ou expirado. Solicite outro e-mail de recuperação.';
+      }
+    } catch {
+      this.errorMessage =
+        'Token inválido ou expirado. Solicite outro e-mail de recuperação.';
+    } finally {
+      this.accessToken = '';
+      this.refreshToken = '';
+      this.validatingToken = false;
     }
   }
 
@@ -59,8 +82,13 @@ export class NovaSenhaComponent implements OnInit {
     return senha === confirmar ? null : { senhasDiferentes: true };
   }
 
-  async onSubmit() {
-    if (this.form.invalid) {
+  async onSubmit(): Promise<void> {
+    if (
+      this.form.invalid ||
+      this.loading ||
+      this.validatingToken ||
+      this.errorMessage
+    ) {
       this.form.markAllAsTouched();
       return;
     }
@@ -71,8 +99,11 @@ export class NovaSenhaComponent implements OnInit {
       await this.authService.updatePassword(this.form.value.senha);
       this.successMessage = 'Senha atualizada com sucesso.';
       setTimeout(() => this.router.navigate(['/login']), 2000);
-    } catch (err: any) {
-      this.errorMessage = err?.message || 'Erro ao atualizar a senha.';
+    } catch (error: unknown) {
+      this.errorMessage =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Erro ao atualizar a senha.';
     } finally {
       this.loading = false;
     }

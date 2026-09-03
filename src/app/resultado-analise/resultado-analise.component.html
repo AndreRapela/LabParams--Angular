@@ -7,16 +7,16 @@
     </div>
   </header>
 
-  <div class="tabs-container" role="tablist" aria-label="Tipo de entrada">
-    <button class="tab-button" [class.tab-active]="abaAtiva === 'manual'" (click)="abaAtiva = 'manual'">
-      <i class="fa-solid fa-keyboard me-2"></i>Inserir resultado
+  <div class="tabs-container" role="tablist" aria-label="Tipo de entrada" aria-orientation="horizontal" (keydown)="navegarAbas($event)">
+    <button #manualTab id="manual-tab" type="button" role="tab" class="tab-button" [class.tab-active]="abaAtiva === 'manual'" [attr.aria-selected]="abaAtiva === 'manual'" aria-controls="manual-panel" [attr.tabindex]="abaAtiva === 'manual' ? 0 : -1" (click)="selecionarAba('manual')">
+      <i class="fa-solid fa-keyboard me-2" aria-hidden="true"></i>Inserir resultado
     </button>
-    <button class="tab-button" [class.tab-active]="abaAtiva === 'importacao'" (click)="abaAtiva = 'importacao'">
-      <i class="fa-solid fa-file-import me-2"></i>Importar resultados
+    <button #importTab id="import-tab" type="button" role="tab" class="tab-button" [class.tab-active]="abaAtiva === 'importacao'" [attr.aria-selected]="abaAtiva === 'importacao'" aria-controls="import-panel" [attr.tabindex]="abaAtiva === 'importacao' ? 0 : -1" (click)="selecionarAba('importacao')">
+      <i class="fa-solid fa-file-import me-2" aria-hidden="true"></i>Importar resultados
     </button>
   </div>
 
-  <div *ngIf="abaAtiva === 'manual'" class="tab-content">
+  <div *ngIf="abaAtiva === 'manual'" id="manual-panel" class="tab-content" role="tabpanel" aria-labelledby="manual-tab">
     <div class="container">
       <section class="form-section legal-form-card">
         <div class="section-heading">
@@ -40,13 +40,13 @@
             </div>
 
             <div class="col-lg-4">
-              <label class="form-label">Número da amostra</label>
-              <input class="form-control readonly-field" [value]="numeroAmostraSelecionada" disabled placeholder="Preenchido pela amostra">
+              <label class="form-label" for="numeroAmostra">Número da amostra</label>
+              <input id="numeroAmostra" class="form-control readonly-field" [value]="numeroAmostraSelecionada" disabled placeholder="Preenchido pela amostra">
             </div>
 
             <div class="col-lg-4">
-              <label class="form-label">Matriz</label>
-              <select class="form-select readonly-field" formControlName="matriz">
+              <label class="form-label" for="matrizResultado">Matriz</label>
+              <select id="matrizResultado" class="form-select readonly-field" formControlName="matriz">
                 <option value="">Preenchida pela amostra</option>
                 <option *ngFor="let matriz of matrizes" [value]="matriz.id">{{ matriz.nome }}</option>
               </select>
@@ -170,20 +170,20 @@
         <h5><i class="bi bi-funnel me-2"></i>Filtros</h5>
         <div class="row g-3">
           <div class="col-md-3">
-            <label class="form-label">Código da amostra</label>
-            <input class="form-control" [(ngModel)]="filtroCodigoAmostra" [ngModelOptions]="{standalone: true}">
+            <label class="form-label" for="filtroCodigoAmostra">Código da amostra</label>
+            <input id="filtroCodigoAmostra" class="form-control" [(ngModel)]="filtroCodigoAmostra" [ngModelOptions]="{standalone: true}">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Data da coleta</label>
-            <input class="form-control" [(ngModel)]="filtroDataColeta" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'coleta')">
+            <label class="form-label" for="filtroDataColeta">Data da coleta</label>
+            <input id="filtroDataColeta" class="form-control" [(ngModel)]="filtroDataColeta" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" inputmode="numeric" (input)="formatarDataFiltro($event,'coleta')">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Data da publicação</label>
-            <input class="form-control" [(ngModel)]="filtroDataPublicacao" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" (input)="formatarDataFiltro($event,'publicacao')">
+            <label class="form-label" for="filtroDataPublicacao">Data da publicação</label>
+            <input id="filtroDataPublicacao" class="form-control" [(ngModel)]="filtroDataPublicacao" [ngModelOptions]="{standalone: true}" placeholder="dd/mm/aaaa" inputmode="numeric" (input)="formatarDataFiltro($event,'publicacao')">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Conformidade</label>
-            <select class="form-select" [(ngModel)]="filtroStatus" [ngModelOptions]="{standalone: true}">
+            <label class="form-label" for="filtroConformidade">Conformidade</label>
+            <select id="filtroConformidade" class="form-select" [(ngModel)]="filtroStatus" [ngModelOptions]="{standalone: true}">
               <option value="">Todos</option>
               <option value="conforme">Conforme</option>
               <option value="nao-conforme">Não conforme</option>
@@ -191,8 +191,8 @@
             </select>
           </div>
           <div class="col-12 text-end">
-            <button class="btn btn-outline-secondary me-2" (click)="limparFiltros()">Limpar</button>
-            <button class="btn btn-primary" (click)="aplicarFiltros()"><i class="bi bi-funnel me-1"></i>Aplicar</button>
+            <button type="button" class="btn btn-outline-secondary me-2" (click)="limparFiltros()">Limpar</button>
+            <button type="button" class="btn btn-primary" (click)="aplicarFiltros()"><i class="fa-solid fa-filter me-1" aria-hidden="true"></i>Aplicar</button>
           </div>
         </div>
       </section>
@@ -211,6 +211,7 @@
 
         <div class="table-responsive">
           <table class="table table-hover table-custom mb-0">
+            <caption class="visually-hidden">Resultados das análises e respectivas ações</caption>
             <thead>
               <tr>
                 <th>Amostra</th>
@@ -231,9 +232,9 @@
                 <td><span class="context-pill">{{ getWorkflowStatus(resultado.status_resultado) }}</span></td>
                 <td><span [class]="'status-' + getStatusConformidade(resultado)">{{ getStatusText(getStatusConformidade(resultado)) }}</span></td>
                 <td class="text-end actions-cell">
-                  <button class="btn btn-sm btn-outline-primary" (click)="visualizarResultado(resultado)" title="Ver detalhes"><i class="fas fa-eye"></i></button>
-                  <button class="btn btn-sm btn-outline-secondary" (click)="editResultado(resultado)" [title]="canEditResultado(resultado) ? 'Editar' : 'Resultado bloqueado pelo workflow'" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-edit"></i></button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="deleteResultado(resultado.id!)" [title]="canEditResultado(resultado) ? 'Arquivar' : 'Resultado retido pelo workflow'" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-box-archive"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="visualizarResultado(resultado, $event.currentTarget)" title="Ver detalhes" [attr.aria-label]="'Ver detalhes do resultado de ' + getParametroNome(resultado)"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="editResultado(resultado)" [title]="canEditResultado(resultado) ? 'Editar' : 'Resultado bloqueado pelo workflow'" [attr.aria-label]="'Editar resultado de ' + getParametroNome(resultado)" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteResultado(resultado.id!)" [title]="canEditResultado(resultado) ? 'Arquivar' : 'Resultado retido pelo workflow'" [attr.aria-label]="'Arquivar resultado de ' + getParametroNome(resultado)" [disabled]="loading || !canEditResultado(resultado)"><i class="fas fa-box-archive" aria-hidden="true"></i></button>
                 </td>
               </tr>
               <tr *ngIf="resultadosPaginados.length === 0 && !loading"><td colspan="7" class="empty-state">Nenhum resultado encontrado.</td></tr>
@@ -245,7 +246,7 @@
           <nav aria-label="Navegação de páginas">
             <ul class="pagination justify-content-center mb-0">
               <li class="page-item" [class.disabled]="paginaAtual === 1"><button class="page-link" (click)="anterior()" [disabled]="paginaAtual === 1">Anterior</button></li>
-              <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaAtual"><button class="page-link" (click)="mudarPagina(pagina)">{{ pagina }}</button></li>
+              <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaAtual"><button type="button" class="page-link" (click)="mudarPagina(pagina)" [attr.aria-current]="pagina === paginaAtual ? 'page' : null" [attr.aria-label]="'Ir para a página ' + pagina">{{ pagina }}</button></li>
               <li class="page-item" [class.disabled]="paginaAtual === totalPaginas"><button class="page-link" (click)="proxima()" [disabled]="paginaAtual === totalPaginas">Próxima</button></li>
             </ul>
           </nav>
@@ -254,19 +255,20 @@
     </div>
   </div>
 
-  <div *ngIf="abaAtiva === 'importacao'" class="tab-content">
+  <div *ngIf="abaAtiva === 'importacao'" id="import-panel" class="tab-content" role="tabpanel" aria-labelledby="import-tab">
     @defer (when abaAtiva === 'importacao') { <app-importacao-resultado></app-importacao-resultado> }
     @placeholder { <div class="text-center py-5 text-muted">Preparando importação...</div> }
   </div>
 
-  <div class="modal fade show details-modal" tabindex="-1" *ngIf="resultadoParaVisualizacao" (click)="fecharVisualizacao()">
-    <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+  <div class="modal fade show details-modal" role="presentation" *ngIf="resultadoParaVisualizacao" (mousedown)="$event.target === $event.currentTarget && fecharVisualizacao()">
+    <div #resultDialog class="modal-dialog modal-dialog-centered modal-lg" role="dialog" aria-modal="true" aria-labelledby="result-detail-title" aria-describedby="result-detail-description" tabindex="-1" (keydown)="manterFocoNaVisualizacao($event)">
       <div class="modal-content">
         <div class="modal-header">
-          <div><p class="step-label">Resultado {{ resultadoParaVisualizacao.id }}</p><h5 class="modal-title">{{ resultadoParaVisualizacao.parametro_nome }}</h5></div>
-          <button type="button" class="btn-close" (click)="fecharVisualizacao()"></button>
+          <div><p class="step-label">Resultado {{ resultadoParaVisualizacao.id }}</p><h5 id="result-detail-title" class="modal-title">{{ resultadoParaVisualizacao.parametro_nome }}</h5></div>
+          <button data-dialog-initial-focus type="button" class="btn-close" (click)="fecharVisualizacao()" aria-label="Fechar detalhes"></button>
         </div>
         <div class="modal-body">
+          <p id="result-detail-description" class="visually-hidden">Detalhes analíticos e enquadramento legal do resultado selecionado.</p>
           <div class="detail-value">{{ getValorResultado(resultadoParaVisualizacao) }}</div>
           <div class="detail-grid">
             <div><span>Amostra</span><strong>{{ resultadoParaVisualizacao.numerodaamostra }}</strong></div>
@@ -284,10 +286,10 @@
             <small>{{ resultadoParaVisualizacao.fonte_legal }}</small>
           </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" (click)="fecharVisualizacao()">Fechar</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" (click)="fecharVisualizacao()">Fechar</button></div>
       </div>
     </div>
   </div>
 
-  <div *ngIf="loading" class="loading-overlay"><div class="spinner-border text-primary" role="status"></div></div>
+  <div *ngIf="loading" class="loading-overlay" role="status"><div class="spinner-border text-primary" aria-hidden="true"></div><span class="visually-hidden">Carregando resultados…</span></div>
 </div>

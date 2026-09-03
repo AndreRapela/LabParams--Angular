@@ -1,13 +1,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
+import { RUNTIME_CONFIG } from '../../../config/runtime.config';
 
 let supabase: SupabaseClient | undefined;
 
 export function getSupabaseClient(): SupabaseClient {
   if (!supabase) {
     supabase = createClient(
-      environment.supabaseUrl,
-      environment.supabaseKey,
+      RUNTIME_CONFIG.supabaseUrl,
+      RUNTIME_CONFIG.supabasePublishableKey,
       {
         auth: {
           // A API renova o token sob demanda ao receber 401. Desativar o ticker

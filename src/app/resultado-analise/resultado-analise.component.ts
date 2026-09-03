@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -14,6 +22,10 @@ import { ImportacaoResultadoComponent } from '../importacao-resultado/importacao
 import { ParametrosFilterService } from '../shared/filtro-parametros.service';
 import { ConfirmationService } from '../shared/feedback/confirmation.service';
 import { NotificationService } from '../shared/feedback/notification.service';
+import {
+  focusDialog,
+  trapDialogFocus,
+} from '../shared/accessibility/dialog-focus';
 import { MetodoAnalitico } from '../metodos-analiticos/metodo-analitico.model';
 import {
   Amostra,
@@ -45,6 +57,11 @@ export class ResultadoAnaliseComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private amostraPorId = new Map<number, Amostra>();
   private parametroPorId = new Map<number, Parametro>();
+  private resultDialogTrigger: HTMLElement | null = null;
+
+  @ViewChild('manualTab') private manualTab?: ElementRef<HTMLButtonElement>;
+  @ViewChild('importTab') private importTab?: ElementRef<HTMLButtonElement>;
+  @ViewChild('resultDialog') private resultDialog?: ElementRef<HTMLElement>;
 
   abaAtiva: 'manual' | 'importacao' = 'manual';
   todosResultados: ResultadoAnalise[] = [];
@@ -290,12 +307,64 @@ export class ResultadoAnaliseComponent implements OnInit {
     this.configurarTipoResultado(null);
   }
 
-  visualizarResultado(resultado: ResultadoAnalise): void {
+  selecionarAba(tab: 'manual' | 'importacao', focus = false): void {
+    this.abaAtiva = tab;
+    if (focus) {
+      window.setTimeout(() => {
+        const target = tab === 'manual' ? this.manualTab : this.importTab;
+        target?.nativeElement.focus();
+      });
+    }
+  }
+
+  navegarAbas(event: KeyboardEvent): void {
+    let target: 'manual' | 'importacao' | null = null;
+    if (event.key === 'Home') target = 'manual';
+    if (event.key === 'End') target = 'importacao';
+    if (event.key === 'ArrowRight') {
+      target = this.abaAtiva === 'manual' ? 'importacao' : 'manual';
+    }
+    if (event.key === 'ArrowLeft') {
+      target = this.abaAtiva === 'manual' ? 'importacao' : 'manual';
+    }
+    if (!target) return;
+
+    event.preventDefault();
+    this.selecionarAba(target, true);
+  }
+
+  visualizarResultado(
+    resultado: ResultadoAnalise,
+    trigger?: EventTarget | null,
+  ): void {
+    this.resultDialogTrigger = trigger instanceof HTMLElement ? trigger : null;
     this.resultadoParaVisualizacao = resultado;
+    window.setTimeout(() => {
+      const dialog = this.resultDialog?.nativeElement;
+      if (!dialog) return;
+      focusDialog(
+        dialog,
+        dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]'),
+      );
+    });
   }
 
   fecharVisualizacao(): void {
+    if (!this.resultadoParaVisualizacao) return;
     this.resultadoParaVisualizacao = null;
+    const trigger = this.resultDialogTrigger;
+    this.resultDialogTrigger = null;
+    window.setTimeout(() => trigger?.focus());
+  }
+
+  manterFocoNaVisualizacao(event: KeyboardEvent): void {
+    const dialog = this.resultDialog?.nativeElement;
+    if (dialog) trapDialogFocus(event, dialog);
+  }
+
+  @HostListener('document:keydown.escape')
+  fecharVisualizacaoComEscape(): void {
+    if (this.resultadoParaVisualizacao) this.fecharVisualizacao();
   }
 
   formatarData(event: Event): void {

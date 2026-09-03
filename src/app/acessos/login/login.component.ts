@@ -8,6 +8,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { getAccessBlockReason } from '../auth/access-state';
 
 @Component({
   selector: 'app-login',
@@ -39,6 +40,7 @@ export class LoginComponent {
 
     const { email, senha } = this.form.value;
 
+    let signedIn = false;
     try {
       const res = await this.authService.login(email, senha);
 
@@ -48,20 +50,33 @@ export class LoginComponent {
         } else {
           this.loginErro = "Erro ao fazer login.";
         }
-        this.loading = false;
         return;
       }
 
-      await this.authService.getSession();
+      signedIn = Boolean(res.data.session);
+      const reason = getAccessBlockReason(await this.authService.getCurrentAccess());
+      if (reason) {
+        await this.router.navigate(['/acesso-negado'], {
+          queryParams: { motivo: reason },
+        });
+        return;
+      }
 
-      this.router.navigateByUrl('/dashboard-web');
-
-    } catch (err) {
-      console.error('Erro no login', err);
-      this.loginErro = "Erro inesperado. Tente novamente.";
+      await this.router.navigateByUrl('/dashboard-web');
+    } catch {
+      if (signedIn) {
+        try {
+          await this.authService.logout();
+        } catch {
+          // O estado local é limpo pelo serviço mesmo se o provedor estiver indisponível.
+        }
+        this.loginErro = 'Não foi possível verificar seu acesso. Tente novamente.';
+      } else {
+        this.loginErro = 'Erro inesperado. Tente novamente.';
+      }
+    } finally {
+      this.loading = false;
     }
-
-    this.loading = false;
   }
 
   goToForgotPassword(): void {

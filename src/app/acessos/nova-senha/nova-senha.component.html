@@ -15,7 +15,7 @@
       <header class="card-header">
         <h2 id="new-password-title" class="card-title">Nova senha</h2>
         <p class="card-description">
-          Informe sua nova senha abaixo.
+          Use uma senha forte e exclusiva para proteger os dados laboratoriais.
         </p>
       </header>
 
@@ -29,14 +29,20 @@
             type="password"
             formControlName="senha"
             autocomplete="new-password"
+            maxlength="200"
             placeholder="Digite sua nova senha"
+            aria-describedby="new-password-rules"
+            [attr.aria-invalid]="form.get('senha')?.touched && form.get('senha')?.invalid"
             [class.invalid]="form.get('senha')?.touched && form.get('senha')?.invalid"
           />
           <div class="field-error" *ngIf="form.get('senha')?.touched && form.get('senha')?.hasError('required')">
             Informe a nova senha.
           </div>
-          <div class="field-error" *ngIf="form.get('senha')?.touched && form.get('senha')?.hasError('minlength')">
-            A senha deve ter no mínimo 6 caracteres.
+          <small id="new-password-rules">
+            Use de 12 a 200 caracteres, com letra minúscula, maiúscula, número e símbolo.
+          </small>
+          <div class="field-error" *ngIf="form.get('senha')?.touched && form.get('senha')?.hasError('passwordStrength')">
+            A senha ainda não atende a todos os requisitos de segurança.
           </div>
         </div>
 
@@ -48,6 +54,7 @@
             type="password"
             formControlName="confirmarSenha"
             autocomplete="new-password"
+            maxlength="200"
             placeholder="Confirme sua nova senha"
             [class.invalid]="form.hasError('senhasDiferentes') && form.get('confirmarSenha')?.touched"
           />
@@ -62,9 +69,9 @@
         <button
           class="submit-button"
           type="submit"
-          [disabled]="loading || form.invalid"
+          [disabled]="loading || validatingToken || !!errorMessage || form.invalid"
         >
-          {{ loading ? 'Salvando...' : 'Atualizar Senha' }}
+          {{ validatingToken ? 'Validando link…' : (loading ? 'Salvando...' : 'Atualizar senha') }}
         </button>
 
       </form>

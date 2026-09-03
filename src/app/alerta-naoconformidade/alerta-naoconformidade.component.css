@@ -8,6 +8,32 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.alerts-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.alerts-header p,
+.alerts-header h1 {
+  margin: 0;
+}
+
+.alerts-header > div > p:last-child {
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  color: var(--primary-color);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
 .page-title {
   font-weight: 700;
   color: #1e293b;
@@ -122,6 +148,16 @@
 /* Select isolado */
 .filters-wrapper .form-select {
   border-radius: 8px;
+  width: 11rem;
+}
+
+.filters-wrapper .input-group {
+  width: min(24rem, 42vw);
+}
+
+.filters-wrapper .clear-filters {
+  width: auto;
+  white-space: nowrap;
 }
 
 /* Correção do Filtro de Busca (Estilo Unificado) */
@@ -193,6 +229,40 @@
 .text-warning-emphasis { color: #b45309 !important; }
 .bg-warning-subtle { background-color: #fef3c7 !important; }
 
+.error-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.error-feedback span {
+  flex: 1;
+}
+
+.limit-message {
+  font-size: 0.75rem;
+}
+
+.alert-pagination {
+  padding: 0.85rem 1rem;
+}
+
+.alert-pagination nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.alert-pagination button {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 /* === RESPONSIVIDADE === */
 @media (max-width: 768px) {
   .alertas-container {
@@ -202,10 +272,24 @@
     width: 100%;
     flex-direction: column;
   }
+  .alerts-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
   /* Em mobile, garante largura total */
   .filters-wrapper select,
   .filters-wrapper .input-group,
   .filters-wrapper .input-group .form-control {
     width: 100% !important;
+  }
+  .filters-wrapper .clear-filters {
+    width: 100%;
+  }
+  .error-feedback {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .alert-pagination nav {
+    flex-wrap: wrap;
   }
 }

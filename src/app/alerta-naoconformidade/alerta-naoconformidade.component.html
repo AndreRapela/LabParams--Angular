@@ -1,156 +1,207 @@
-<div class="alertas-container">
-
-  <div class="d-flex justify-content-between align-items-center mb-4">
-
-    <div class="d-flex align-items-center gap-4">
-
-      <h1 class="page-title mb-0 d-flex align-items-center" style="font-size: 1.5rem;">
-        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
-        <span style="color: #1e293b;">Alertas de Não Conformidades</span>
+<main class="alertas-container" aria-labelledby="alerts-title">
+  <header class="alerts-header">
+    <div>
+      <p class="eyebrow">Monitoramento operacional</p>
+      <h1 id="alerts-title" class="page-title">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        Alertas de não conformidade
       </h1>
+      <p>Priorize resultados publicados próximos ou fora dos limites aplicáveis.</p>
     </div>
 
-    <button class="btn btn-white border shadow-sm" (click)="carregarDados()" [disabled]="isLoading">
-      <i class="fas fa-sync-alt" [class.spin-icon]="isLoading"></i> Atualizar
+    <button
+      type="button"
+      class="btn btn-white border shadow-sm"
+      (click)="carregarDados()"
+      [disabled]="isLoading"
+    >
+      <i class="fa-solid fa-rotate" [class.spin-icon]="isLoading" aria-hidden="true"></i>
+      Atualizar
+    </button>
+  </header>
+
+  <section class="row g-3 mb-4" aria-label="Resumo dos alertas">
+    <div class="col-md-3">
+      <article class="stats-card border-start border-warning border-4">
+        <span class="label text-warning-emphasis">Alertas preventivos</span>
+        <div class="value text-warning">{{ stats.alerta }}</div>
+        <small class="text-muted">Próximos do limite.</small>
+      </article>
+    </div>
+    <div class="col-md-3">
+      <article class="stats-card border-start border-orange border-4">
+        <span class="label text-orange">Não conformes</span>
+        <div class="value text-orange">{{ stats.naoConforme }}</div>
+        <small class="text-muted">Fora dos limites legais.</small>
+      </article>
+    </div>
+    <div class="col-md-3">
+      <article class="stats-card border-start border-danger border-4">
+        <span class="label text-danger">Críticos</span>
+        <div class="value text-danger">{{ stats.critico }}</div>
+        <small class="text-muted">Desvio severo.</small>
+      </article>
+    </div>
+    <div class="col-md-3">
+      <article class="stats-card border-start border-secondary border-4">
+        <span class="label text-secondary">Total de ocorrências</span>
+        <div class="value text-secondary">{{ stats.total }}</div>
+        <small class="text-muted">Sob os filtros atuais.</small>
+      </article>
+    </div>
+  </section>
+
+  <div class="alert alert-danger shadow-sm error-feedback" *ngIf="erroApi" role="alert">
+    <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+    <span>{{ erroApi }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="carregarDados()">
+      Tentar novamente
     </button>
   </div>
 
-  <div class="row g-3 mb-4">
-
-    <div class="col-md-3">
-      <div class="stats-card border-start border-warning border-4">
-        <span class="label text-warning-emphasis">Alertas (Preventivo)</span>
-        <div class="value text-warning">{{ stats.alerta }}</div>
-        <small class="text-muted">Próximos do limite.</small>
+  <section class="card content-card shadow-sm border-0" aria-labelledby="alerts-list-title">
+    <header class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center py-3 gap-3">
+      <div>
+        <h2 id="alerts-list-title" class="h5 mb-0 fw-bold text-secondary">
+          Lista de ocorrências
+          <span class="badge bg-light text-dark border ms-2 rounded-pill">
+            {{ pagination.total }}
+          </span>
+        </h2>
+        <small *ngIf="pagination.total" class="text-muted" aria-live="polite">
+          Exibindo {{ rangeStart }}–{{ rangeEnd }} de {{ pagination.total }} ·
+          página {{ page }} de {{ pagination.total_pages }}
+        </small>
       </div>
-    </div>
 
-    <div class="col-md-3">
-      <div class="stats-card border-start border-orange border-4" style="border-left-color: #fd7e14 !important;">
-        <span class="label text-orange">Não Conformes</span>
-        <div class="value text-orange">{{ stats.naoConforme }}</div>
-        <small class="text-muted">Fora dos limites legais.</small>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="stats-card border-start border-danger border-4">
-        <span class="label text-danger">Críticos (Grave)</span>
-        <div class="value text-danger">{{ stats.critico }}</div>
-        <small class="text-muted">Desvio severo.</small>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="stats-card border-start border-secondary border-4">
-        <span class="label text-secondary">Total de Ocorrências</span>
-        <div class="value text-secondary">{{ stats.total }}</div>
-        <small class="text-muted">Monitoramento geral.</small>
-      </div>
-    </div>
-  </div>
-
-  <div class="alert alert-danger shadow-sm" *ngIf="erroApi">
-    <i class="bi bi-x-circle-fill me-2"></i>
-    Não foi possível carregar os dados. Verifique sua conexão com a API.
-  </div>
-
-  <div class="card content-card shadow-sm border-0">
-    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center py-3 gap-3">
-
-      <h5 class="mb-0 fw-bold text-secondary d-flex align-items-center">
-        Lista de Ocorrências
-        <span class="badge bg-light text-dark border ms-2 rounded-pill">{{ alertasFiltrados.length }}</span>
-      </h5>
-
-      <div class="d-flex gap-2 filters-wrapper">
-        <select class="form-select form-select-sm" style="width: 160px;" [(ngModel)]="filtroStatus"
-          (change)="aplicarFiltros()">
-          <option value="Todos">Status: Todos</option>
-          <option value="ALERTA">Alerta</option>
-          <option value="NÃO CONFORME">Não Conforme</option>
-          <option value="CRÍTICO">Crítico</option>
+      <div class="d-flex gap-2 filters-wrapper" role="search" aria-label="Filtrar alertas">
+        <label class="visually-hidden" for="alert-status-filter">Status</label>
+        <select
+          id="alert-status-filter"
+          class="form-select form-select-sm"
+          [(ngModel)]="filtroStatus"
+          (change)="aplicarFiltros()"
+        >
+          <option value="">Status: todos</option>
+          <option value="alerta">Alerta</option>
+          <option value="nao-conforme">Não conforme</option>
+          <option value="critico">Crítico</option>
         </select>
 
-        <div class="input-group input-group-sm" style="width: 250px;">
-          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar parâmetro ou local..."
-            [(ngModel)]="filtroTexto" (input)="aplicarFiltros()">
-          <button class="btn btn-outline-secondary border-start-0" type="button" *ngIf="filtroTexto"
-            (click)="limparFiltros()">
-            <i class="bi bi-x"></i>
+        <div class="input-group input-group-sm">
+          <label class="visually-hidden" for="alert-search">Buscar alerta</label>
+          <span class="input-group-text bg-light border-end-0">
+            <i class="fa-solid fa-magnifying-glass text-muted" aria-hidden="true"></i>
+          </span>
+          <input
+            id="alert-search"
+            type="search"
+            class="form-control border-start-0 ps-0"
+            placeholder="Parâmetro, matriz, contexto ou amostra"
+            maxlength="100"
+            autocomplete="off"
+            [(ngModel)]="filtroTexto"
+            (input)="agendarFiltroTexto()"
+          />
+          <button
+            class="btn btn-outline-secondary border-start-0"
+            type="button"
+            *ngIf="filtroTexto"
+            (click)="limparTexto()"
+            aria-label="Limpar busca textual"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
+
+        <button
+          *ngIf="hasActiveFilters"
+          type="button"
+          class="btn btn-outline-secondary clear-filters"
+          (click)="limparFiltros()"
+          [disabled]="isLoading"
+        >
+          Limpar filtros
+        </button>
       </div>
+    </header>
+
+    <div class="text-center py-5" *ngIf="isLoading" role="status">
+      <div class="spinner-border text-primary" aria-hidden="true"></div>
+      <p class="text-muted mt-2 small">Analisando dados…</p>
     </div>
 
-    <div class="text-center py-5" *ngIf="isLoading">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Carregando...</span>
-      </div>
-      <p class="text-muted mt-2 small">Analisando dados...</p>
-    </div>
-
-    <div class="table-responsive" *ngIf="!isLoading">
+    <div class="table-responsive" *ngIf="!isLoading && !erroApi">
       <table class="table table-hover align-middle mb-0">
+        <caption class="visually-hidden">
+          Alertas de resultados publicados sob os filtros atuais
+        </caption>
         <thead class="bg-light text-secondary small text-uppercase">
           <tr>
-            <th class="ps-4">Status</th>
-            <th>Parâmetro</th>
-            <th>Matriz</th>
-            <th>Valor / Limite</th>
-            <th>Data da Ocorrência</th>
+            <th scope="col" class="ps-4">Status</th>
+            <th scope="col">Parâmetro</th>
+            <th scope="col">Matriz</th>
+            <th scope="col">Valor / limite</th>
+            <th scope="col">Data da ocorrência</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of alertasFiltrados">
+          <tr *ngFor="let item of alertasFiltrados; trackBy: trackByAlertaId">
             <td class="ps-4">
-              <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-3 py-2" [ngClass]="{
-                      'bg-warning-subtle text-warning-emphasis border border-warning': item.status === 'ALERTA',
-                      'bg-orange-subtle text-orange-emphasis border border-orange': item.status === 'NÃO CONFORME',
-                      'bg-danger-subtle text-danger border border-danger': item.status === 'CRÍTICO'
-                    }">
-                <i class="bi" [class.bi-exclamation-circle-fill]="item.status === 'ALERTA'"
-                  [class.bi-exclamation-triangle-fill]="item.status === 'NÃO CONFORME'"
-                  [class.bi-x-octagon-fill]="item.status === 'CRÍTICO'"></i>
+              <span
+                class="badge rounded-pill d-inline-flex align-items-center gap-1 px-3 py-2"
+                [ngClass]="{
+                  'bg-warning-subtle text-warning-emphasis border border-warning': item.status === 'ALERTA',
+                  'bg-orange-subtle text-orange-emphasis border border-orange': item.status === 'NÃO CONFORME',
+                  'bg-danger-subtle text-danger border border-danger': item.status === 'CRÍTICO'
+                }"
+              >
+                <i
+                  class="fa-solid"
+                  [class.fa-circle-exclamation]="item.status === 'ALERTA'"
+                  [class.fa-triangle-exclamation]="item.status === 'NÃO CONFORME'"
+                  [class.fa-circle-xmark]="item.status === 'CRÍTICO'"
+                  aria-hidden="true"
+                ></i>
                 {{ item.status }}
               </span>
             </td>
-
             <td class="fw-bold text-dark">{{ item.parametro_nome }}</td>
-
             <td>
               <span class="text-secondary small bg-light px-2 py-1 rounded border">
-                <i class="bi bi-geo-alt me-1"></i> {{ item.matriz_nome }}
+                {{ item.matriz_nome }}
               </span>
             </td>
-
             <td>
-              <strong [ngClass]="{
-                      'text-warning-emphasis': item.status === 'ALERTA',
-                      'text-orange': item.status === 'NÃO CONFORME',
-                      'text-danger': item.status === 'CRÍTICO'
-                    }" class="fs-6">
-                {{ item.valor_medido | number:'1.2-4' }}
+              <strong
+                [ngClass]="{
+                  'text-warning-emphasis': item.status === 'ALERTA',
+                  'text-orange': item.status === 'NÃO CONFORME',
+                  'text-danger': item.status === 'CRÍTICO'
+                }"
+                class="fs-6"
+              >
+                {{ item.valor_qualitativo || (item.valor_medido | number:'1.2-4') }}
                 <span class="small text-muted fw-normal">{{ item.unidade_medida }}</span>
               </strong>
-              <br>
-              <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+              <br />
+              <small class="text-muted fst-italic limit-message">
                 {{ item.mensagem_limite }}
               </small>
             </td>
-
             <td class="text-secondary">
               {{ item.data_alerta | date:'dd/MM/yyyy HH:mm':'UTC' }}
             </td>
           </tr>
 
-          <tr *ngIf="!isLoading && alertasFiltrados.length === 0">
+          <tr *ngIf="alertasFiltrados.length === 0">
             <td colspan="5" class="text-center py-5 text-muted bg-white">
               <div class="py-4">
-                <i class="bi bi-check2-circle fs-1 text-success opacity-50 d-block mb-3"></i>
-                <h6 class="fw-bold text-dark">Nenhum Alerta Encontrado</h6>
-                <p class="mb-0 small">Não há registros de não conformidade com os filtros atuais.</p>
+                <i class="fa-solid fa-circle-check fs-1 text-success opacity-50 d-block mb-3" aria-hidden="true"></i>
+                <h3 class="h6 fw-bold text-dark">Nenhum alerta encontrado</h3>
+                <p class="mb-0 small">
+                  Não há registros de não conformidade com os filtros atuais.
+                </p>
               </div>
             </td>
           </tr>
@@ -158,8 +209,31 @@
       </table>
     </div>
 
-    <div class="card-footer bg-white text-muted small py-2 d-flex justify-content-end" *ngIf="!isLoading">
-      <span class="me-2"><i class="bi bi-clock"></i> Atualizado em tempo real</span>
-    </div>
-  </div>
-</div>
+    <footer
+      *ngIf="!isLoading && !erroApi && pagination.total_pages > 1"
+      class="card-footer bg-white alert-pagination"
+    >
+      <nav aria-label="Paginação dos alertas">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="mudarPagina(page - 1)"
+          [disabled]="page <= 1"
+        >
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          Anterior
+        </button>
+        <span aria-live="polite">Página {{ page }} de {{ pagination.total_pages }}</span>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="mudarPagina(page + 1)"
+          [disabled]="page >= pagination.total_pages"
+        >
+          Próxima
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+      </nav>
+    </footer>
+  </section>
+</main>
